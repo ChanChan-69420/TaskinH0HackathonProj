@@ -49,7 +49,11 @@ function TaskRow() {
           </div>
           {task.subtasks.map((sub) => (
             <div key={sub.id} className="flex items-center gap-3 pb-2 pl-6">
-              <span className="font-sans text-cyan/70">↳</span>
+              {/* Pixel-art corner arrow for subtask indent */}
+              <svg viewBox="0 0 14 14" className="h-4 w-4 shrink-0 text-cyan/70" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                <path d="M2 2 L2 10 L12 10" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
+                <path d="M9 7 L12 10 L9 13" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" />
+              </svg>
               <PixelCheckbox checked={sub.done} onChange={() => toggleSub(task.id, sub.id)} className="h-5 w-5" />
               <span
                 className={cn(

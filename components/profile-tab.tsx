@@ -2,8 +2,24 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Eye, EyeOff } from "lucide-react"
 import { useGame } from "@/lib/game-context"
+
+// PixelEyeIcon – inline SVG eye in pixel style for the account detail toggles
+function PixelEyeIcon({ open }: { open: boolean }) {
+  return open ? (
+    <svg viewBox="0 0 20 14" className="h-5 w-5" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path d="M1 7 C4 1, 16 1, 19 7 C16 13, 4 13, 1 7Z" stroke="#22e5e5" strokeWidth="1.5" fill="none" />
+      <circle cx="10" cy="7" r="3" fill="#22e5e5" />
+      <circle cx="10" cy="7" r="1.5" fill="oklch(0.22 0.04 220)" />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 20 14" className="h-5 w-5" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path d="M1 7 C4 1, 16 1, 19 7 C16 13, 4 13, 1 7Z" stroke="#22e5e5" strokeWidth="1.5" fill="none" />
+      <circle cx="10" cy="7" r="3" stroke="#22e5e5" strokeWidth="1.5" fill="none" />
+      <line x1="3" y1="11" x2="17" y2="3" stroke="#22e5e5" strokeWidth="1.5" strokeLinecap="square" />
+    </svg>
+  )
+}
 
 export function ProfileTab() {
   const { level, xp, coins, streak } = useGame()
@@ -29,13 +45,13 @@ export function ProfileTab() {
         {/* ── Top row: avatar | stats | treasure ───── */}
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
 
-          {/* Avatar */}
+          {/* Avatar — pixel-art male face */}
           <div
             className="game-panel flex-shrink-0 overflow-hidden"
             style={{ width: 120, height: 120 }}
           >
             <Image
-              src="/icons/avatar.png"
+              src="/icons/avatar-male.png"
               alt="User avatar"
               width={120}
               height={120}
@@ -46,7 +62,15 @@ export function ProfileTab() {
           {/* Username / Level / XP bar / Streak */}
           <div className="flex flex-1 flex-col gap-2">
             <p className="font-sans text-2xl tracking-widest text-foreground">USER_01</p>
-            <p className="font-sans text-base tracking-widest text-foreground/80">
+            {/* Level with level-up icon */}
+            <p className="flex items-center gap-2 font-sans text-base tracking-widest text-foreground/80">
+              <Image
+                src="/icons/levelup.png"
+                alt="Level up"
+                width={22}
+                height={22}
+                className="pixelated"
+              />
               LEVEL {level}
             </p>
 
@@ -69,10 +93,16 @@ export function ProfileTab() {
               />
             </div>
 
-            {/* Streak */}
-            <p className="font-sans text-base tracking-widest text-foreground">
+            {/* Streak — pixel fire icon */}
+            <p className="flex items-center gap-2 font-sans text-base tracking-widest text-foreground">
               {streak} DAY STREAK{" "}
-              <span role="img" aria-label="fire">🔥</span>
+              <Image
+                src="/icons/fire.png"
+                alt="fire streak"
+                width={24}
+                height={24}
+                className="pixelated"
+              />
             </p>
           </div>
 
@@ -128,9 +158,7 @@ export function ProfileTab() {
                 aria-label={showEmail ? "Hide email" : "Show email"}
                 className="flex h-full items-center justify-center px-4 py-3 text-foreground/70 transition-colors hover:text-cyan"
               >
-                {showEmail
-                  ? <EyeOff className="h-5 w-5" />
-                  : <Eye className="h-5 w-5" />}
+                <PixelEyeIcon open={showEmail} />
               </button>
             </div>
           </div>
@@ -155,9 +183,7 @@ export function ProfileTab() {
                 aria-label={showPassword ? "Hide password" : "Show password"}
                 className="flex h-full items-center justify-center px-4 py-3 text-foreground/70 transition-colors hover:text-cyan"
               >
-                {showPassword
-                  ? <EyeOff className="h-5 w-5" />
-                  : <Eye className="h-5 w-5" />}
+                <PixelEyeIcon open={showPassword} />
               </button>
             </div>
           </div>

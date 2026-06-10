@@ -1,7 +1,6 @@
 "use client"
 
 import Image from "next/image"
-import { Flame } from "lucide-react"
 import { useGame } from "@/lib/game-context"
 import { PixelCheckbox } from "@/components/pixel-checkbox"
 
@@ -53,7 +52,7 @@ export function DashboardTab({ onAddTask }: { onAddTask: () => void }) {
           <h3 className="mb-4 font-sans text-xl tracking-wide text-foreground sm:text-2xl">USER PROFILE</h3>
           <div className="mb-5 flex items-center gap-4">
             <Image
-              src="/icons/avatar.png"
+              src="/icons/avatar-male.png"
               alt="User avatar"
               width={56}
               height={56}
@@ -74,7 +73,14 @@ export function DashboardTab({ onAddTask }: { onAddTask: () => void }) {
             <div className="h-full bg-cyan/70" style={{ width: `${xpPct}%` }} />
           </div>
           <p className="flex items-center gap-2 font-sans text-base tracking-wide text-foreground">
-            {streak} DAY STREAK <Flame className="h-5 w-5 text-gold" fill="currentColor" />
+            {streak} DAY STREAK{" "}
+            <Image
+              src="/icons/fire.png"
+              alt="streak fire"
+              width={22}
+              height={22}
+              className="pixelated"
+            />
           </p>
         </div>
       </div>
