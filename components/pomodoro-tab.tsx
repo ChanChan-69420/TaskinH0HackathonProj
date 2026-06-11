@@ -82,9 +82,10 @@ export function PomodoroTab() {
               setSelectedTaskId(e.target.value as string)
               setCustomTaskName("")
             }}
-            className="flex-1 rounded border border-panel-border bg-input/40 px-3 py-2 font-sans text-sm text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-1 focus:ring-cyan"
+            className="flex-1 rounded border border-panel-border px-3 py-2 font-sans text-sm text-white placeholder:text-foreground/40 focus:outline-none focus:ring-1 focus:ring-cyan"
+            style={{ backgroundColor: "#1B2D34" }}
           >
-            <option value="custom">Custom Task</option>
+            <option>Custom Task</option>
             {tasks.map((task) => (
               <option key={task.id} value={task.id}>
                 {task.title}
