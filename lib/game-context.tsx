@@ -1,120 +1,364 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useState } from "react"
+import { apiFetch, clearToken } from "@/lib/api"
 
-export type Difficulty = "Easy" | "Normal" | "Hard"
-export type Urgency = "Urgent" | "Normal"
+// ─────────────────────────────────────────────────────────────────────────────
+// Types — mirror the FastAPI backend response shapes exactly.
+// ─────────────────────────────────────────────────────────────────────────────
 
-export type SubTask = {
+export type TaskStatus = "not_started" | "in_progress" | "completed"
+export type Priority = "low" | "medium" | "high"
+
+export type Subtask = {
   id: string
   title: string
-  done: boolean
+  status: TaskStatus
+  estimated_time: number | null
+  points: number
+  ai_suggested: boolean
 }
 
 export type Task = {
   id: string
   title: string
-  done: boolean
-  urgency: Urgency
-  difficulty: Difficulty
-  subtasks: SubTask[]
+  description: string
+  status: TaskStatus
+  priority: Priority
+  due_date: string | null
+  subtasks: Subtask[]
+  subtask_count: number
+  completed_subtask_count: number
+  bonus_points: number
+  bonus_reason: string
 }
 
-export type ShopItem = {
+export type Reward = {
   id: string
   name: string
+  description: string
   cost: number
-  icon: "instagram" | "chips" | "book" | "coffee"
+  ai_suggested_cost: number | null
+  ai_reason: string
+  claimed: boolean
 }
 
-type GameState = {
-  coins: number
-  xp: number
+export type UserProfile = {
+  id: string
+  email: string
+  username: string
+  member_since: string
+  total_points: number
   level: number
-  streak: number
+  level_title: string
+}
+
+export type UserStats = {
+  points_and_level: {
+    total_points: number
+    level: number
+    level_progress: {
+      percentage_to_next_level: number
+      points_needed_for_next_level: number
+    }
+  }
+  tasks: {
+    total: number
+    completed: number
+    in_progress: number
+    not_started: number
+  }
+  subtasks: {
+    total: number
+    completed: number
+    ai_generated: number
+  }
+  rewards: {
+    total: number
+    claimed: number
+    available: number
+  }
+}
+
+export type UserProgress = {
+  total_points: number
+  level: number
+  percentage_to_next_level: number
+  points_needed_for_next_level: number
+}
+
+// ── Request payload helper types ──────────────────────────────────────────────
+
+export type TaskCreateInput = {
+  title: string
+  description?: string
+  priority?: Priority
+  due_date?: string | null
+}
+
+export type TaskUpdateInput = Partial<TaskCreateInput>
+
+export type RewardCreateInput = {
+  name: string
+  description?: string
+  cost: number
+}
+
+export type RewardUpdateInput = Partial<RewardCreateInput>
+
+export type SubtaskCreateInput = {
+  title: string
+  description?: string
+  estimated_time?: number
+  points?: number
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Context shape
+// ─────────────────────────────────────────────────────────────────────────────
+
+type GameState = {
+  // Server data
   tasks: Task[]
-  shopItems: ShopItem[]
-  toggleTask: (id: string) => void
-  toggleSub: (taskId: string, subId: string) => void
-  addTask: (task: Omit<Task, "id">) => void
-  buyItem: (id: string) => void
-  addShopItem: (item: Omit<ShopItem, "id">) => void
+  rewards: Reward[]
+  stats: UserStats | null
+  profile: UserProfile | null
+  progress: UserProgress | null
+
+  // UI state
+  loading: boolean
+  error: string | null
+
+  // Lifecycle
+  refreshAll: () => Promise<void>
+
+  // Task actions
+  createTask: (input: TaskCreateInput) => Promise<void>
+  updateTask: (taskId: string, input: TaskUpdateInput) => Promise<void>
+  deleteTask: (taskId: string) => Promise<void>
+  updateTaskStatus: (taskId: string, status: TaskStatus) => Promise<void>
+  breakdownTask: (taskId: string) => Promise<void>
+
+  // Subtask actions
+  addSubtask: (taskId: string, input: SubtaskCreateInput) => Promise<void>
+  completeSubtask: (subtaskId: string) => Promise<void>
+  deleteSubtask: (subtaskId: string) => Promise<void>
+
+  // Reward actions
+  createReward: (input: RewardCreateInput) => Promise<void>
+  updateReward: (rewardId: string, input: RewardUpdateInput) => Promise<void>
+  deleteReward: (rewardId: string) => Promise<void>
+  analyzeReward: (rewardId: string) => Promise<void>
+  claimReward: (rewardId: string) => Promise<void>
 }
 
 const GameContext = createContext<GameState | null>(null)
 
-const initialTasks: Task[] = [
-  {
-    id: "t1",
-    title: "Pixel Art Project Proposal",
-    done: false,
-    urgency: "Urgent",
-    difficulty: "Easy",
-    subtasks: [
-      { id: "s1", title: "Write draft", done: true },
-      { id: "s2", title: "Create assets", done: false },
-    ],
-  },
-  { id: "t2", title: "Water the Plants", done: false, urgency: "Normal", difficulty: "Easy", subtasks: [] },
-  { id: "t3", title: "Read Chapter 5", done: false, urgency: "Normal", difficulty: "Hard", subtasks: [] },
-  {
-    id: "t4",
-    title: "Weekly Team Meeting",
-    done: true,
-    urgency: "Urgent",
-    difficulty: "Normal",
-    subtasks: [{ id: "s3", title: "Prepare slides", done: true }],
-  },
-  { id: "t5", title: "Grocery Shopping", done: false, urgency: "Normal", difficulty: "Easy", subtasks: [] },
-  { id: "t6", title: "Code Review", done: false, urgency: "Normal", difficulty: "Normal", subtasks: [] },
-  { id: "t7", title: "Finish Project Proposal", done: true, urgency: "Urgent", difficulty: "Hard", subtasks: [] },
-]
-
-const initialShop: ShopItem[] = [
-  { id: "i1", name: "15 Mins Instagram", cost: 60, icon: "instagram" },
-  { id: "i2", name: "Packet of Chips", cost: 200, icon: "chips" },
-  { id: "i3", name: "30 Mins Reading", cost: 200, icon: "book" },
-  { id: "i4", name: "Coffee Break", cost: 200, icon: "coffee" },
-  { id: "i5", name: "Packet of Chips", cost: 100, icon: "chips" },
-  { id: "i6", name: "30 Mins Reading", cost: 300, icon: "book" },
-  { id: "i7", name: "Coffee Break", cost: 200, icon: "coffee" },
-]
+// ─────────────────────────────────────────────────────────────────────────────
+// Provider
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
-  const [coins, setCoins] = useState(1250)
-  const [xp] = useState(7400)
-  const [level] = useState(15)
-  const [streak] = useState(7)
-  const [tasks, setTasks] = useState<Task[]>(initialTasks)
-  const [shopItems, setShopItems] = useState<ShopItem[]>(initialShop)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [rewards, setRewards] = useState<Reward[]>([])
+  const [stats, setStats] = useState<UserStats | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [progress, setProgress] = useState<UserProgress | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const toggleTask = (id: string) =>
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)))
+  // ── Granular refreshers ─────────────────────────────────────────────────────
+  const refreshTasks = useCallback(async () => {
+    const data = await apiFetch<Task[]>("/api/tasks")
+    setTasks(data)
+  }, [])
 
-  const toggleSub = (taskId: string, subId: string) =>
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId
-          ? { ...t, subtasks: t.subtasks.map((s) => (s.id === subId ? { ...s, done: !s.done } : s)) }
-          : t,
-      ),
-    )
+  const refreshRewards = useCallback(async () => {
+    const data = await apiFetch<Reward[]>("/api/rewards")
+    setRewards(data)
+  }, [])
 
-  const addTask = (task: Omit<Task, "id">) =>
-    setTasks((prev) => [...prev, { ...task, id: `t${Date.now()}` }])
+  const refreshStats = useCallback(async () => {
+    const data = await apiFetch<UserStats>("/api/user/stats")
+    setStats(data)
+  }, [])
 
-  const buyItem = (id: string) => {
-    const item = shopItems.find((i) => i.id === id)
-    if (item && coins >= item.cost) setCoins((c) => c - item.cost)
-  }
+  const refreshProfile = useCallback(async () => {
+    const data = await apiFetch<UserProfile>("/api/user/profile")
+    setProfile(data)
+  }, [])
 
-  const addShopItem = (item: Omit<ShopItem, "id">) =>
-    setShopItems((prev) => [...prev, { ...item, id: `i${Date.now()}` }])
+  const refreshProgress = useCallback(async () => {
+    const data = await apiFetch<UserProgress>("/api/user/progress")
+    setProgress(data)
+  }, [])
+
+  // Refresh the gamification-derived data (points/level/stats/progress).
+  const refreshGamification = useCallback(async () => {
+    await Promise.all([refreshStats(), refreshProfile(), refreshProgress()])
+  }, [refreshStats, refreshProfile, refreshProgress])
+
+  const refreshAll = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      await Promise.all([
+        refreshTasks(),
+        refreshRewards(),
+        refreshStats(),
+        refreshProfile(),
+        refreshProgress(),
+      ])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load your data.")
+    } finally {
+      setLoading(false)
+    }
+  }, [refreshTasks, refreshRewards, refreshStats, refreshProfile, refreshProgress])
+
+  useEffect(() => {
+    void refreshAll()
+  }, [refreshAll])
+
+  // ── Task actions ────────────────────────────────────────────────────────────
+  const createTask = useCallback(
+    async (input: TaskCreateInput) => {
+      await apiFetch("/api/tasks", { method: "POST", body: input })
+      await Promise.all([refreshTasks(), refreshGamification()])
+    },
+    [refreshTasks, refreshGamification],
+  )
+
+  const updateTask = useCallback(
+    async (taskId: string, input: TaskUpdateInput) => {
+      await apiFetch(`/api/tasks/${taskId}`, { method: "PUT", body: input })
+      await refreshTasks()
+    },
+    [refreshTasks],
+  )
+
+  const deleteTask = useCallback(
+    async (taskId: string) => {
+      await apiFetch(`/api/tasks/${taskId}`, { method: "DELETE" })
+      await Promise.all([refreshTasks(), refreshGamification()])
+    },
+    [refreshTasks, refreshGamification],
+  )
+
+  const updateTaskStatus = useCallback(
+    async (taskId: string, status: TaskStatus) => {
+      await apiFetch(`/api/tasks/${taskId}/status`, {
+        method: "PATCH",
+        body: { status },
+      })
+      await Promise.all([refreshTasks(), refreshGamification()])
+    },
+    [refreshTasks, refreshGamification],
+  )
+
+  const breakdownTask = useCallback(
+    async (taskId: string) => {
+      await apiFetch(`/api/tasks/${taskId}/breakdown`, { method: "POST" })
+      await refreshTasks()
+    },
+    [refreshTasks],
+  )
+
+  // ── Subtask actions ─────────────────────────────────────────────────────────
+  const addSubtask = useCallback(
+    async (taskId: string, input: SubtaskCreateInput) => {
+      await apiFetch(`/api/tasks/${taskId}/subtasks`, {
+        method: "POST",
+        body: input,
+      })
+      await refreshTasks()
+    },
+    [refreshTasks],
+  )
+
+  const completeSubtask = useCallback(
+    async (subtaskId: string) => {
+      await apiFetch(`/api/subtasks/${subtaskId}/complete`, { method: "PATCH" })
+      await Promise.all([refreshTasks(), refreshGamification()])
+    },
+    [refreshTasks, refreshGamification],
+  )
+
+  const deleteSubtask = useCallback(
+    async (subtaskId: string) => {
+      await apiFetch(`/api/subtasks/${subtaskId}`, { method: "DELETE" })
+      await Promise.all([refreshTasks(), refreshGamification()])
+    },
+    [refreshTasks, refreshGamification],
+  )
+
+  // ── Reward actions ──────────────────────────────────────────────────────────
+  const createReward = useCallback(
+    async (input: RewardCreateInput) => {
+      await apiFetch("/api/rewards", { method: "POST", body: input })
+      await refreshRewards()
+    },
+    [refreshRewards],
+  )
+
+  const updateReward = useCallback(
+    async (rewardId: string, input: RewardUpdateInput) => {
+      await apiFetch(`/api/rewards/${rewardId}`, { method: "PUT", body: input })
+      await refreshRewards()
+    },
+    [refreshRewards],
+  )
+
+  const deleteReward = useCallback(
+    async (rewardId: string) => {
+      await apiFetch(`/api/rewards/${rewardId}`, { method: "DELETE" })
+      await refreshRewards()
+    },
+    [refreshRewards],
+  )
+
+  const analyzeReward = useCallback(
+    async (rewardId: string) => {
+      await apiFetch(`/api/rewards/${rewardId}/analyze`, { method: "POST" })
+      await refreshRewards()
+    },
+    [refreshRewards],
+  )
+
+  const claimReward = useCallback(
+    async (rewardId: string) => {
+      await apiFetch(`/api/rewards/${rewardId}/claim`, { method: "POST" })
+      await Promise.all([refreshRewards(), refreshGamification()])
+    },
+    [refreshRewards, refreshGamification],
+  )
 
   return (
     <GameContext.Provider
-      value={{ coins, xp, level, streak, tasks, shopItems, toggleTask, toggleSub, addTask, buyItem, addShopItem }}
+      value={{
+        tasks,
+        rewards,
+        stats,
+        profile,
+        progress,
+        loading,
+        error,
+        refreshAll,
+        createTask,
+        updateTask,
+        deleteTask,
+        updateTaskStatus,
+        breakdownTask,
+        addSubtask,
+        completeSubtask,
+        deleteSubtask,
+        createReward,
+        updateReward,
+        deleteReward,
+        analyzeReward,
+        claimReward,
+      }}
     >
       {children}
     </GameContext.Provider>
@@ -126,3 +370,6 @@ export function useGame() {
   if (!ctx) throw new Error("useGame must be used within GameProvider")
   return ctx
 }
+
+// Convenience: clear the session token (used by logout flows).
+export { clearToken }

@@ -70,6 +70,9 @@ export function PomodoroTab() {
     return tasks.find((t) => t.id === selectedTaskId)?.title || "Task"
   }
 
+  // Only offer not-yet-completed tasks in the dropdown.
+  const selectableTasks = tasks.filter((t) => t.status !== "completed")
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <div className="game-panel w-full max-w-2xl space-y-8 p-8">
@@ -85,8 +88,8 @@ export function PomodoroTab() {
             className="flex-1 rounded border border-panel-border px-3 py-2 font-sans text-sm text-white placeholder:text-foreground/40 focus:outline-none focus:ring-1 focus:ring-cyan"
             style={{ backgroundColor: "#1B2D34" }}
           >
-            <option>Custom Task</option>
-            {tasks.map((task) => (
+            <option value="custom">Custom Task</option>
+            {selectableTasks.map((task) => (
               <option key={task.id} value={task.id}>
                 {task.title}
               </option>
