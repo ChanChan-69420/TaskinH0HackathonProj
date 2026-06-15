@@ -15,15 +15,26 @@ from app.database.base import Base
 import app.models  # noqa: F401
 Base.metadata.create_all(bind=engine)
 
-# Auto-migration for tasks.difficulty column and rewards.redeemed column
+# Auto-migration for tasks, rewards, and users tables
 from sqlalchemy import text
 with engine.connect() as conn:
-    try:
-        conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS difficulty VARCHAR(20) DEFAULT 'Normal';"))
-        conn.execute(text("ALTER TABLE rewards ADD COLUMN IF NOT EXISTS redeemed BOOLEAN DEFAULT FALSE;"))
-        conn.commit()
-    except Exception as e:
-        print(f"Skipping auto-migration: {e}")
+    is_sqlite = engine.dialect.name == "sqlite"
+    statements = [
+        ("tasks", "difficulty", "ALTER TABLE tasks ADD COLUMN difficulty VARCHAR(20) DEFAULT 'Normal';" if is_sqlite else "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS difficulty VARCHAR(20) DEFAULT 'Normal';"),
+        ("rewards", "redeemed", "ALTER TABLE rewards ADD COLUMN redeemed BOOLEAN DEFAULT FALSE;" if is_sqlite else "ALTER TABLE rewards ADD COLUMN IF NOT EXISTS redeemed BOOLEAN DEFAULT FALSE;"),
+        ("users", "reset_otp", "ALTER TABLE users ADD COLUMN reset_otp VARCHAR(10) NULL;" if is_sqlite else "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(10) NULL;"),
+        ("users", "reset_otp_expires_at", "ALTER TABLE users ADD COLUMN reset_otp_expires_at TIMESTAMP NULL;" if is_sqlite else "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP NULL;")
+    ]
+    for table, col, sql in statements:
+        try:
+            conn.execute(text(sql))
+            conn.commit()
+        except Exception as e:
+            err_msg = str(e).lower()
+            if "duplicate column" in err_msg or "already exists" in err_msg or "duplicate column name" in err_msg:
+                pass
+            else:
+                print(f"Skipping migration for {table}.{col}: {e}")
 
 app = FastAPI(
     title="Gamified To-Do API",
