@@ -40,6 +40,8 @@ def get_user_stats(
     db: Session = Depends(get_db),
 ):
     gamification = _get_or_create_gamification(current_user.id, db)
+    gamification.update_streak()
+    db.commit()
     
     total_points = gamification.total_points
     level = gamification.level
@@ -71,6 +73,7 @@ def get_user_stats(
                 "points_needed_for_next_level": needed,
             }
         },
+        "streak": gamification.get_active_streak(),
         "tasks": {
             "total": total_tasks,
             "completed": completed_tasks,
@@ -124,6 +127,7 @@ def get_user_profile(
         "total_points": gamification.total_points,
         "level": level,
         "level_title": level_title,
+        "streak": gamification.get_active_streak(),
     }
 
 

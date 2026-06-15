@@ -2,10 +2,12 @@
 
 import Image from "next/image"
 import { useGame } from "@/lib/game-context"
+import { useAuth } from "@/lib/auth-context"
 import { PixelCheckbox } from "@/components/pixel-checkbox"
 
 export function DashboardTab({ onAddTask }: { onAddTask: () => void }) {
   const { tasks, coins, level, xp, streak, toggleTask, isLoading } = useGame()
+  const { user } = useAuth()
   const xpPct = Math.min(100, Math.round(((xp % 100) / 100) * 100)) || 0
 
   return (
@@ -69,10 +71,10 @@ export function DashboardTab({ onAddTask }: { onAddTask: () => void }) {
               height={56}
               className="pixelated border border-panel-border"
             />
-            <p className="font-sans text-base leading-tight tracking-wide text-foreground">
+            <p className="font-sans text-base leading-tight tracking-wide text-foreground uppercase">
               WELCOME
               <br />
-              BACK, USER!
+              BACK, {user?.username || "USER"}!
             </p>
           </div>
 

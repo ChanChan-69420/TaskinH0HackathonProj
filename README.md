@@ -1,33 +1,59 @@
-# v0-gamified-to-do-list-website-H0
+# Gamified To-Do List Application
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+This project is split into a Next.js frontend and a FastAPI (Python) backend to keep the directory structure neat and organized.
 
-## Built with v0
+## Project Structure
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+* **`frontend/`**: The Next.js web application built with React, TailwindCSS, and Shadcn UI.
+* **`backend/`**: The FastAPI Python backend handling authentication, tasks, gamification, and database logic.
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_LDPlNnf06P1KFIFnGOTrJcm0iN5L)
+---
 
 ## Getting Started
 
-First, run the development server:
+### 1. Frontend Setup
+
+To set up and run the frontend development server:
 
 ```bash
+# Navigate to the frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Run the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-## Learn More
+### 2. Backend Setup
 
-To learn more, take a look at the following resources:
+To set up and run the backend API server:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+```bash
+# Navigate to the backend directory
+cd backend
+
+# Create a Python virtual environment (if not already done)
+python -m venv venv
+
+# Activate the virtual environment
+# On Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+# On Windows (CMD):
+.\venv\Scripts\activate.bat
+# On macOS/Linux:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the FastAPI server
+uvicorn app.main:app --reload
+```
+
+The backend API will run on [http://localhost:8000](http://localhost:8000). You can access interactive API documentation at [http://localhost:8000/docs](http://localhost:8000/docs).

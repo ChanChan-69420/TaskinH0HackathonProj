@@ -24,7 +24,8 @@ level         — derived from total_points; recomputed on every change
 """
 
 import uuid
-from sqlalchemy import Column, Integer, ForeignKey
+from datetime import datetime, timezone
+from sqlalchemy import Column, Integer, ForeignKey, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -44,6 +45,8 @@ class UserGamification(Base):
 
     total_points = Column(Integer, nullable=False, default=0)
     level = Column(Integer, nullable=False, default=1)
+    current_streak = Column(Integer, nullable=False, default=0)
+    last_active_at = Column(Date, nullable=True)
 
     # Relationship back to User
     user = relationship("User", back_populates="gamification")
@@ -62,6 +65,32 @@ class UserGamification(Base):
         """Deduct points (floor at 0) and refresh level."""
         self.total_points = max(0, self.total_points - amount)
         self.recalculate_level()
+
+    def update_streak(self) -> None:
+        """Update the user's streak based on the current UTC calendar date."""
+        today = datetime.now(timezone.utc).date()
+        if not self.last_active_at:
+            self.current_streak = 1
+            self.last_active_at = today
+        else:
+            delta = (today - self.last_active_at).days
+            if delta == 1:
+                self.current_streak += 1
+                self.last_active_at = today
+            elif delta > 1:
+                self.current_streak = 1
+                self.last_active_at = today
+            # If delta == 0, they already checked in today, do nothing
+
+    def get_active_streak(self) -> int:
+        """Return the active streak, checking if they missed yesterday's window."""
+        if not self.last_active_at:
+            return 0
+        today = datetime.now(timezone.utc).date()
+        delta = (today - self.last_active_at).days
+        if delta > 1:
+            return 0
+        return self.current_streak
 
     def __repr__(self) -> str:
         return (

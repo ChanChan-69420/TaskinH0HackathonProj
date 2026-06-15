@@ -6,10 +6,19 @@ __v0_jsx-dev-runtime.ts
 .v0-trash/
 .vercel/
 
-# Environment variables
-.env*.local
+# Frontend (Next.js)
+frontend/node_modules/
+frontend/.next/
+frontend/.env*.local
+
+# Backend (Python)
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/*.db
+backend/.env
+backend/.mypy_cache/
 
 # Common ignores
-node_modules
-.next/
 .DS_Store
+Thumbs.db

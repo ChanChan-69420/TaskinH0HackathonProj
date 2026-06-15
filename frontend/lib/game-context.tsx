@@ -123,7 +123,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [coins, setCoins] = useState(0)
   const [xp, setXp] = useState(0)
   const [level, setLevel] = useState(1)
-  const [streak] = useState(0)
+  const [streak, setStreak] = useState(0)
   const [tasks, setTasks] = useState<Task[]>([])
   const [shopItems, setShopItems] = useState<ShopItem[]>([])
   const [purchases, setPurchases] = useState<Purchase[]>([])
@@ -155,6 +155,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setCoins(pts.total_points)
       setXp(pts.total_points)
       setLevel(pts.level)
+      setStreak(statsData.streak)
     } catch (err) {
       console.error("Failed to load game data:", err)
     } finally {
@@ -203,6 +204,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           setCoins(pts.total_points)
           setXp(pts.total_points)
           setLevel(pts.level)
+          setStreak(stats.streak)
         })
         .catch(console.error)
 

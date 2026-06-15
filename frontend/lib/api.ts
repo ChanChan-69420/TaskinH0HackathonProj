@@ -5,7 +5,7 @@
  * Attaches JWT token from localStorage to every request.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null
@@ -45,6 +45,15 @@ async function request<T = any>(method: string, path: string, body?: unknown): P
     } catch {
       // Response body wasn't JSON
     }
+
+    if (res.status === 401 && !path.endsWith("/login") && !path.endsWith("/register")) {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
+        window.location.reload()
+      }
+    }
+
     throw new ApiError(detail, res.status)
   }
 
