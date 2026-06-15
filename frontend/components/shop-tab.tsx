@@ -4,6 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import { Trash2 } from "lucide-react"
 import { useGame, type ShopItem } from "@/lib/game-context"
+import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 function ItemCard({
@@ -52,6 +53,8 @@ export function ShopTab() {
   const [name, setName] = useState("")
   const [cost, setCost] = useState("")
   const [analyzed, setAnalyzed] = useState<number | null>(null)
+  const [reasoning, setReasoning] = useState<string | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
 
   // Task 13: Default icon changed to "chest"
   const addManual = () => {
@@ -190,10 +193,27 @@ export function ShopTab() {
           <div className="space-y-4">
             <button
               type="button"
-              onClick={() => setAnalyzed(Math.floor(Math.random() * 200) + 100)}
-              className="w-full border border-panel-border bg-input/40 py-3 font-sans text-sm tracking-wide text-foreground transition-colors hover:border-cyan"
+              disabled={analyzing || !name.trim()}
+              onClick={async () => {
+                setAnalyzing(true)
+                setAnalyzed(null)
+                setReasoning(null)
+                try {
+                  const result = await api.post("/api/rewards/analyze-text", {
+                    name: name,
+                    description: "",
+                  })
+                  setAnalyzed(result.suggested_cost)
+                  setReasoning(result.reasoning)
+                } catch (err) {
+                  console.error("AI analysis failed:", err)
+                } finally {
+                  setAnalyzing(false)
+                }
+              }}
+              className="w-full border border-panel-border bg-input/40 py-3 font-sans text-sm tracking-wide text-foreground transition-colors hover:border-cyan disabled:cursor-not-allowed disabled:opacity-40"
             >
-              ANALYZE REWARD VALUE
+              {analyzing ? "ANALYZING..." : "ANALYZE REWARD VALUE"}
             </button>
             <p className="font-sans text-sm tracking-wide text-foreground/80">ESTIMATE COIN COSTS VIA AI</p>
             <div>
@@ -210,12 +230,18 @@ export function ShopTab() {
                 <p className="font-sans text-sm tracking-wide text-foreground">
                   AI SUGGESTS: <span className="text-gold">{analyzed} COINS</span>
                 </p>
+                {reasoning && (
+                  <p className="mt-2 font-sans text-xs italic leading-relaxed tracking-wide text-foreground/70">
+                    {reasoning}
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={() => {
                     if (name.trim()) addShopItem({ name, cost: analyzed, icon: "chest" })
                     setName("")
                     setAnalyzed(null)
+                    setReasoning(null)
                   }}
                   className="mt-3 w-full border border-cyan/60 bg-cyan/10 py-2 font-sans text-xs tracking-wide text-foreground hover:bg-cyan/20"
                 >

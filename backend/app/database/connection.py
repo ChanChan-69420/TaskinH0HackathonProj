@@ -13,8 +13,8 @@ from app.config import DATABASE_URL
 # ── Engine ────────────────────────────────────────────────────────────────────
 try:
     if DATABASE_URL.startswith("postgresql"):
-        # Test connection quickly using a 3-second timeout
-        test_engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 3})
+        # Test connection quickly using a 20-second timeout
+        test_engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 20})
         with test_engine.connect() as conn:
             pass
         test_engine.dispose()
@@ -23,7 +23,7 @@ try:
         engine = create_engine(
             DATABASE_URL,
             pool_pre_ping=True,
-            connect_args={"connect_timeout": 10},
+            connect_args={"connect_timeout": 20},
         )
     else:
         engine = create_engine(DATABASE_URL)
