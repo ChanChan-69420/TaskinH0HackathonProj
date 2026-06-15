@@ -23,6 +23,8 @@ with engine.connect() as conn:
         conn.execute(text("ALTER TABLE rewards ADD COLUMN IF NOT EXISTS redeemed BOOLEAN DEFAULT FALSE;"))
         conn.execute(text("ALTER TABLE user_gamification ADD COLUMN IF NOT EXISTS current_streak INTEGER DEFAULT 0 NOT NULL;"))
         conn.execute(text("ALTER TABLE user_gamification ADD COLUMN IF NOT EXISTS last_active_at DATE;"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(10);"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP;"))
         conn.commit()
     except Exception as e:
         print(f"Auto-migration: {e}")

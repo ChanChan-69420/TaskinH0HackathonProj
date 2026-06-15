@@ -14,6 +14,7 @@ If the token is missing or invalid, it automatically returns a 401 error
 and the route never runs. This is how we protect private data.
 """
 
+import uuid
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -59,12 +60,18 @@ def get_current_user(
         if user_id is None:
             raise credentials_error
 
+        # Convert string user_id to uuid.UUID object to prevent database-specific conversion errors
+        try:
+            uuid_user_id = uuid.UUID(user_id)
+        except ValueError:
+            raise credentials_error
+
     except JWTError:
         # Token is malformed, expired, or tampered with
         raise credentials_error
 
     # Look up the user in the database
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == uuid_user_id).first()
     if user is None:
         raise credentials_error
 

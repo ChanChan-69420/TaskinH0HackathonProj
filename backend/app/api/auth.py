@@ -24,10 +24,16 @@ import bcrypt
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
-from app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_DAYS
+from app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_DAYS, GOOGLE_CLIENT_ID
 from app.database.connection import get_db
 from app.models.gamification import UserGamification
 from app.models.user import User
+
+from google.oauth2 import id_token
+from google.auth.transport import requests
+import secrets
+import re
+
 
 router = APIRouter()
 
@@ -95,6 +101,17 @@ class LoginRequest(BaseModel):
             "example": {
                 "email": "player@example.com",
                 "password": "securepassword123",
+            }
+        }
+
+
+class GoogleLoginRequest(BaseModel):
+    credential: str
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "credential": "eyJhbGciOiJSUzI1NiIsImtpZCI6...",
             }
         }
 
@@ -222,3 +239,184 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         token=token,
         message=f"Welcome back, {user.username}! 👋",
     )
+
+
+@router.post(
+    "/auth/google",
+    response_model=AuthResponse,
+    summary="Log in or register with Google OAuth ID token",
+)
+def google_login(data: GoogleLoginRequest, db: Session = Depends(get_db)):
+    """
+    Log in or register using a Google ID token.
+    - Verifies Google token signature and client ID
+    - Extracts email, name, etc.
+    - Finds user by email; if not found, creates a new one
+    - Signs them in and returns a standard JWT
+    """
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Google Client ID is not configured on the backend.",
+        )
+
+    try:
+        # Verify Google ID token
+        idinfo = id_token.verify_oauth2_token(
+            data.credential,
+            requests.Request(),
+            GOOGLE_CLIENT_ID,
+            clock_skew_in_seconds=300
+        )
+
+        # Check issuer
+        if idinfo["iss"] not in ["accounts.google.com", "https://accounts.google.com"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Wrong issuer: token is not from Google.",
+            )
+
+        email = idinfo.get("email")
+        name = idinfo.get("name", "")
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Google ID token does not contain an email.",
+            )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid Google ID token: {e}",
+        )
+
+    # Find or create user
+    user = db.query(User).filter(User.email == email).first()
+    is_new = False
+
+    if not user:
+        is_new = True
+        # Generate username from Google name or email prefix
+        base_username = name.strip() if name.strip() else email.split("@")[0]
+        # Sanitize username: only keep alphanumeric and underscores/hyphens
+        username = re.sub(r"[^\w\s-]", "", base_username).strip().replace(" ", "_")
+        if not username:
+            username = "player"
+
+        # Handle duplicates
+        orig_username = username
+        counter = 1
+        while db.query(User).filter(User.username == username).first():
+            username = f"{orig_username}_{counter}"
+            counter += 1
+
+        # Create user with a strong random password since they use Google
+        user = User(
+            email=email,
+            username=username,
+            password_hash=hash_password(secrets.token_urlsafe(32)),
+        )
+        db.add(user)
+        db.flush()
+
+        # Create gamification details
+        gamification = UserGamification(user_id=user.id)
+        db.add(gamification)
+        db.commit()
+        db.refresh(user)
+
+    token = create_access_token(str(user.id))
+
+    msg = f"Welcome to Gamified To-Do, {user.username}! 🎉" if is_new else f"Welcome back, {user.username}! 👋"
+
+    return AuthResponse(
+        id=str(user.id),
+        email=user.email,
+        username=user.username,
+        token=token,
+        message=msg,
+    )
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
+
+@router.post(
+    "/auth/forgot-password",
+    summary="Generate and send a 4-digit OTP for password reset",
+)
+def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    # Find user by email
+    user = db.query(User).filter(User.email == data.email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Email not registered. Please sign up.",
+        )
+    
+    # Generate 4-digit OTP
+    otp = str(secrets.randbelow(9000) + 1000)  # Generates between 1000 and 9999
+    
+    # Store OTP and expiry time (5 minutes from now)
+    user.reset_otp = otp
+    user.reset_otp_expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=5)
+    
+    db.commit()
+    
+    # Log OTP to terminal console so user can copy it
+    print(f"\n=========================================")
+    print(f"[FORGOT PASSWORD OTP] Sent to: {user.email}")
+    print(f"OTP CODE: {otp}")
+    print(f"=========================================\n", flush=True)
+    
+    return {"message": "OTP generated and printed to server logs."}
+
+
+@router.post(
+    "/auth/reset-password",
+    summary="Verify OTP and reset user password",
+)
+def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
+    # Validate password length
+    if len(data.new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 6 characters long.",
+        )
+        
+    user = db.query(User).filter(User.email == data.email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+        
+    if not user.reset_otp or user.reset_otp != data.otp:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or incorrect OTP.",
+        )
+        
+    if not user.reset_otp_expires_at or user.reset_otp_expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OTP has expired. Please request a new one.",
+        )
+        
+    # Reset password
+    user.password_hash = hash_password(data.new_password)
+    user.reset_otp = None
+    user.reset_otp_expires_at = None
+    
+    db.commit()
+    
+    return {"message": "Password reset successfully. Please sign in."}
+
+
