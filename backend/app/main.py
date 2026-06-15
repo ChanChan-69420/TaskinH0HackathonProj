@@ -15,8 +15,8 @@ from app.database.base import Base
 import app.models  # noqa: F401
 Base.metadata.create_all(bind=engine)
 
-# Auto-migration for tasks.difficulty, rewards.redeemed, and streak columns
-from sqlalchemy import text, inspect as sa_inspect
+# Auto-migration for missing columns (PostgreSQL ALTER TABLE ... IF NOT EXISTS)
+from sqlalchemy import text
 with engine.connect() as conn:
     try:
         conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS difficulty VARCHAR(20) DEFAULT 'Normal';"))
@@ -24,29 +24,8 @@ with engine.connect() as conn:
         conn.execute(text("ALTER TABLE user_gamification ADD COLUMN IF NOT EXISTS current_streak INTEGER DEFAULT 0 NOT NULL;"))
         conn.execute(text("ALTER TABLE user_gamification ADD COLUMN IF NOT EXISTS last_active_at DATE;"))
         conn.commit()
-    except Exception:
-        pass
-    # SQLite fallback: ALTER TABLE without IF NOT EXISTS
-    try:
-        inspector = sa_inspect(engine)
-        cols = [c["name"] for c in inspector.get_columns("user_gamification")]
-        if "current_streak" not in cols:
-            conn.execute(text("ALTER TABLE user_gamification ADD COLUMN current_streak INTEGER NOT NULL DEFAULT 0;"))
-        if "last_active_at" not in cols:
-            conn.execute(text("ALTER TABLE user_gamification ADD COLUMN last_active_at DATE;"))
-        if "difficulty" not in cols:
-            inspector2 = sa_inspect(engine)
-            task_cols = [c["name"] for c in inspector2.get_columns("tasks")]
-            if "difficulty" not in task_cols:
-                conn.execute(text("ALTER TABLE tasks ADD COLUMN difficulty VARCHAR(20) DEFAULT 'Normal';"))
-        if "redeemed" not in cols:
-            inspector3 = sa_inspect(engine)
-            rew_cols = [c["name"] for c in inspector3.get_columns("rewards")]
-            if "redeemed" not in rew_cols:
-                conn.execute(text("ALTER TABLE rewards ADD COLUMN redeemed BOOLEAN DEFAULT FALSE;"))
-        conn.commit()
     except Exception as e:
-        print(f"Skipping SQLite auto-migration: {e}")
+        print(f"Auto-migration: {e}")
 
 app = FastAPI(
     title="Gamified To-Do API",
