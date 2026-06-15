@@ -79,6 +79,7 @@ def format_reward(reward: Reward) -> dict:
         "ai_suggested_cost": reward.ai_suggested_cost,
         "ai_reason": reward.ai_reason or "",
         "claimed": reward.claimed,
+        "redeemed": getattr(reward, "redeemed", False),
     }
 
 
@@ -377,3 +378,36 @@ def claim_reward(
         "remaining_points": gamification.total_points,
         "level": gamification.level,
     }
+
+
+@router.post(
+    "/rewards/{reward_id}/redeem",
+    summary="Mark a claimed reward as redeemed",
+)
+def redeem_reward(
+    reward_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Mark a reward that was already claimed/purchased as redeemed."""
+    reward = db.query(Reward).filter(Reward.id == reward_id).first()
+    if not reward:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reward not found.",
+        )
+    if str(reward.user_id) != str(current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not your reward.",
+        )
+    if not reward.claimed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reward has not been purchased yet.",
+        )
+    
+    reward.redeemed = True
+    db.commit()
+    db.refresh(reward)
+    return format_reward(reward)

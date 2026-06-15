@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { AuthProvider } from "@/lib/auth-context"
 import { GameProvider } from "@/lib/game-context"
 import { TopNav, type Tab } from "@/components/top-nav"
 import { DashboardTab } from "@/components/dashboard-tab"

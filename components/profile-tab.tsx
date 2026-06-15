@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useGame } from "@/lib/game-context"
+import { api } from "@/lib/api"
 
 // PixelEyeIcon – inline SVG eye in pixel style for the account detail toggles
 function PixelEyeIcon({ open }: { open: boolean }) {
@@ -21,15 +22,36 @@ function PixelEyeIcon({ open }: { open: boolean }) {
   )
 }
 
+type UserProfile = {
+  username: string
+  email: string
+  level: number
+  level_title: string
+  total_points: number
+  member_since: string
+}
+
 export function ProfileTab() {
   const { level, xp, coins, streak } = useGame()
   const [showEmail, setShowEmail] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
 
-  const email = "user_pixel@questmail.com"
-  const password = "p1x3lQuest!2024"
-  const xpCurrent = xp % 1000
-  const xpMax = 1000
+  useEffect(() => {
+    api
+      .get("/api/user/profile")
+      .then((data) => setProfile(data))
+      .catch(console.error)
+  }, [])
+
+  const displayUsername = profile?.username?.toUpperCase() || "USER"
+  const displayEmail = profile?.email || "loading..."
+  const displayLevel = profile?.level || level
+  const displayTitle = profile?.level_title || "Adventurer"
+  const totalPoints = profile?.total_points || coins
+
+  const xpCurrent = totalPoints % 100
+  const xpMax = 100
   const xpPct = Math.min(100, Math.round((xpCurrent / xpMax) * 100))
 
   return (
@@ -61,9 +83,9 @@ export function ProfileTab() {
 
           {/* Username / Level / XP bar / Streak */}
           <div className="flex flex-1 flex-col gap-2">
-            <p className="font-sans text-2xl tracking-widest text-foreground">USER_01</p>
+            <p className="font-sans text-2xl tracking-widest text-foreground">{displayUsername}</p>
             <p className="font-sans text-base tracking-widest text-foreground/80">
-              LEVEL {level}
+              LEVEL {displayLevel} — {displayTitle.toUpperCase()}
             </p>
 
             {/* XP progress bar — full width, green fill */}
@@ -110,7 +132,7 @@ export function ProfileTab() {
                 className="pixelated"
               />
               <span className="font-sans text-3xl tracking-wide text-gold">
-                {coins.toLocaleString()}
+                {totalPoints.toLocaleString()}
               </span>
             </div>
             <p className="font-sans text-xs tracking-widest text-foreground/70">GOLD COINS</p>
@@ -142,7 +164,7 @@ export function ProfileTab() {
               style={{ background: "oklch(0.35 0.025 220 / 50%)" }}
             >
               <span className="flex-1 px-4 py-3 font-mono text-lg tracking-widest text-foreground/90">
-                {showEmail ? email : "• • • • • • •"}
+                {showEmail ? displayEmail : "• • • • • • •"}
               </span>
               <button
                 type="button"
@@ -167,7 +189,7 @@ export function ProfileTab() {
               style={{ background: "oklch(0.35 0.025 220 / 50%)" }}
             >
               <span className="flex-1 px-4 py-3 font-mono text-lg tracking-widest text-foreground/90">
-                {showPassword ? password : "• • • • • • •"}
+                {"• • • • • • •"}
               </span>
               <button
                 type="button"
@@ -179,6 +201,18 @@ export function ProfileTab() {
               </button>
             </div>
           </div>
+
+          {/* Member since */}
+          {profile?.member_since && (
+            <div className="flex items-center gap-4">
+              <span className="w-28 flex-shrink-0 font-sans text-sm tracking-widest text-foreground">
+                MEMBER SINCE
+              </span>
+              <span className="font-mono text-lg tracking-widest text-foreground/90">
+                {profile.member_since.toUpperCase()}
+              </span>
+            </div>
+          )}
         </div>
 
       </section>

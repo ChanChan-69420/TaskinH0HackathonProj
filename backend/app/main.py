@@ -15,6 +15,16 @@ from app.database.base import Base
 import app.models  # noqa: F401
 Base.metadata.create_all(bind=engine)
 
+# Auto-migration for tasks.difficulty column and rewards.redeemed column
+from sqlalchemy import text
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS difficulty VARCHAR(20) DEFAULT 'Normal';"))
+        conn.execute(text("ALTER TABLE rewards ADD COLUMN IF NOT EXISTS redeemed BOOLEAN DEFAULT FALSE;"))
+        conn.commit()
+    except Exception as e:
+        print(f"Skipping auto-migration: {e}")
+
 app = FastAPI(
     title="Gamified To-Do API",
     description="Backend for the Gamified To-Do list app. Uses Gemini AI for task breakdown and reward pricing.",

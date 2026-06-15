@@ -47,6 +47,7 @@ class Reward(Base, TimestampMixin):
 
     # Has this reward already been redeemed?
     claimed = Column(Boolean, nullable=False, default=False)
+    redeemed = Column(Boolean, nullable=False, default=False)
 
     # Relationship
     user = relationship("User", back_populates="rewards")

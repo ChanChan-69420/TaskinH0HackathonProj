@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, type KeyboardEvent, type ClipboardEvent } from "react"
+import { AuthProvider, useAuth } from "@/lib/auth-context"
 import { MainApp } from "@/components/main-app"
 
 // ─── Google "G" pixel-style SVG ────────────────────────────────────────────
@@ -79,25 +80,38 @@ function PixelButton({
 // LOGIN VIEW
 // ─────────────────────────────────────────────────────────────────────────────
 function LoginView({
-  onLogin,
+  onSwitch,
   onForgot,
 }: {
-  onLogin: () => void
+  onSwitch: () => void
   onForgot: () => void
 }) {
+  const { login, error, clearError } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    // Frontend-only: any non-empty credentials log you in
-    if (email.trim() && password.trim()) onLogin()
+    if (!email.trim() || !password.trim()) return
+    setLoading(true)
+    try {
+      await login(email.trim(), password.trim())
+    } catch {
+      // Error is set in auth context
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <PixelBackground>
       <form onSubmit={handleSubmit} className="game-panel flex flex-col gap-5 p-8">
-        {/* Google button */}
+        <h1 className="text-center font-sans text-2xl tracking-widest text-foreground">
+          SIGN IN
+        </h1>
+
+        {/* Google button (placeholder) */}
         <button
           type="button"
           className="
@@ -105,7 +119,6 @@ function LoginView({
             bg-panel px-6 py-3 font-mono text-base text-foreground backdrop-blur-sm
             transition-colors hover:border-cyan hover:text-cyan
           "
-          onClick={onLogin}
           aria-label="Login with Google"
         >
           <GoogleIcon />
@@ -119,6 +132,11 @@ function LoginView({
           <div className="flex-1 border-t border-dashed border-panel-border" />
         </div>
 
+        {/* Error message */}
+        {error && (
+          <p className="text-center font-mono text-xs text-urgent">{error}</p>
+        )}
+
         {/* Email */}
         <div className="flex flex-col gap-2">
           <label className="font-mono text-base text-foreground" htmlFor="login-email">
@@ -129,7 +147,7 @@ function LoginView({
             type="email"
             placeholder="Email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); clearError() }}
             autoComplete="email"
           />
         </div>
@@ -144,21 +162,163 @@ function LoginView({
             type="password"
             placeholder="*******"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); clearError() }}
             autoComplete="current-password"
           />
         </div>
 
         {/* Login button */}
-        <PixelButton type="submit">Login</PixelButton>
+        <PixelButton type="submit" disabled={loading}>
+          {loading ? "LOGGING IN..." : "LOGIN"}
+        </PixelButton>
+
+        {/* Register link */}
+        <button
+          type="button"
+          onClick={onSwitch}
+          className="font-mono text-sm text-cyan underline underline-offset-4 transition-opacity hover:opacity-80"
+        >
+          Don&apos;t have an account? Register
+        </button>
 
         {/* Forgot password */}
         <button
           type="button"
           onClick={onForgot}
-          className="font-mono text-sm text-cyan underline underline-offset-4 transition-opacity hover:opacity-80"
+          className="font-mono text-sm text-foreground/50 underline underline-offset-4 transition-opacity hover:opacity-80"
         >
           Forgot Password?
+        </button>
+      </form>
+    </PixelBackground>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REGISTER VIEW
+// ─────────────────────────────────────────────────────────────────────────────
+function RegisterView({ onSwitch }: { onSwitch: () => void }) {
+  const { register, error, clearError } = useAuth()
+  const [email, setEmail] = useState("")
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [localError, setLocalError] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLocalError("")
+
+    if (!email.trim() || !username.trim() || !password.trim()) {
+      setLocalError("All fields are required.")
+      return
+    }
+    if (password.length < 6) {
+      setLocalError("Password must be at least 6 characters.")
+      return
+    }
+    if (password !== confirmPassword) {
+      setLocalError("Passwords do not match.")
+      return
+    }
+
+    setLoading(true)
+    try {
+      await register(email.trim(), username.trim(), password)
+    } catch {
+      // Error is set in auth context
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const displayError = localError || error
+
+  return (
+    <PixelBackground>
+      <form onSubmit={handleSubmit} className="game-panel flex flex-col gap-5 p-8">
+        <h1 className="text-center font-sans text-2xl tracking-widest text-foreground">
+          REGISTER
+        </h1>
+
+        {/* Error message */}
+        {displayError && (
+          <p className="text-center font-mono text-xs text-urgent">{displayError}</p>
+        )}
+
+        {/* Email */}
+        <div className="flex flex-col gap-2">
+          <label className="font-mono text-base text-foreground" htmlFor="reg-email">
+            Email
+          </label>
+          <PixelInput
+            id="reg-email"
+            type="email"
+            placeholder="your@email.com"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); clearError(); setLocalError("") }}
+            autoComplete="email"
+          />
+        </div>
+
+        {/* Username */}
+        <div className="flex flex-col gap-2">
+          <label className="font-mono text-base text-foreground" htmlFor="reg-username">
+            Username
+          </label>
+          <PixelInput
+            id="reg-username"
+            type="text"
+            placeholder="player1"
+            value={username}
+            onChange={(e) => { setUsername(e.target.value); clearError(); setLocalError("") }}
+            autoComplete="username"
+          />
+        </div>
+
+        {/* Password */}
+        <div className="flex flex-col gap-2">
+          <label className="font-mono text-base text-foreground" htmlFor="reg-password">
+            Password
+          </label>
+          <PixelInput
+            id="reg-password"
+            type="password"
+            placeholder="Min 6 characters"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); clearError(); setLocalError("") }}
+            autoComplete="new-password"
+          />
+        </div>
+
+        {/* Confirm Password */}
+        <div className="flex flex-col gap-2">
+          <label className="font-mono text-base text-foreground" htmlFor="reg-confirm">
+            Confirm Password
+          </label>
+          <PixelInput
+            id="reg-confirm"
+            type="password"
+            placeholder="Re-enter password"
+            value={confirmPassword}
+            onChange={(e) => { setConfirmPassword(e.target.value); setLocalError("") }}
+            autoComplete="new-password"
+          />
+        </div>
+
+        {/* Register button */}
+        <PixelButton type="submit" disabled={loading}>
+          {loading ? "CREATING ACCOUNT..." : "REGISTER"}
+        </PixelButton>
+
+        {/* Switch to Login */}
+        <button
+          type="button"
+          onClick={onSwitch}
+          className="font-mono text-sm text-cyan underline underline-offset-4 transition-opacity hover:opacity-80"
+        >
+          Already have an account? Sign In
         </button>
       </form>
     </PixelBackground>
@@ -266,7 +426,6 @@ function OtpView({
   }
 
   function handleVerify() {
-    // Frontend-only: accept OTP "1234" or any 4-digit code
     const code = digits.join("")
     if (code.length < 4) {
       setError("Please enter all 4 digits.")
@@ -328,17 +487,36 @@ function OtpView({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ROOT PAGE — orchestrates all auth views
+// AUTH GATE — orchestrates login / register / forgot / OTP views
 // ─────────────────────────────────────────────────────────────────────────────
-type AuthView = "login" | "forgot" | "otp"
 
-export default function Page() {
+type AuthView = "login" | "register" | "forgot" | "otp"
+
+function AuthGate() {
+  const { isAuthenticated, isLoading } = useAuth()
   const [view, setView] = useState<AuthView>("login")
-  const [isAuthed, setIsAuthed] = useState(false)
   const [forgotEmail, setForgotEmail] = useState("")
 
-  if (isAuthed) return <MainApp />
+  // Show loading while checking localStorage for existing session
+  if (isLoading) {
+    return (
+      <PixelBackground>
+        <div className="game-panel flex flex-col items-center gap-4 p-8">
+          <p className="font-sans text-lg tracking-widest text-cyan">LOADING...</p>
+        </div>
+      </PixelBackground>
+    )
+  }
 
+  // Authenticated → show the app
+  if (isAuthenticated) return <MainApp />
+
+  // Register view
+  if (view === "register") {
+    return <RegisterView onSwitch={() => setView("login")} />
+  }
+
+  // Forgot password view
   if (view === "forgot") {
     return (
       <ForgotView
@@ -348,13 +526,13 @@ export default function Page() {
     )
   }
 
+  // OTP view
   if (view === "otp") {
     return (
       <OtpView
         email={forgotEmail}
-        onVerify={() => setIsAuthed(true)}
+        onVerify={() => setView("login")}
         onResend={() => {
-          // Simulate resend — just reset to otp view freshly
           setView("forgot")
           setTimeout(() => setView("otp"), 10)
         }}
@@ -362,10 +540,22 @@ export default function Page() {
     )
   }
 
+  // Default: Login view
   return (
     <LoginView
-      onLogin={() => setIsAuthed(true)}
+      onSwitch={() => setView("register")}
       onForgot={() => setView("forgot")}
     />
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROOT PAGE — wraps everything in AuthProvider
+// ─────────────────────────────────────────────────────────────────────────────
+export default function Page() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
   )
 }

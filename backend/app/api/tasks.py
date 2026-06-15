@@ -41,6 +41,7 @@ class TaskCreateRequest(BaseModel):
     title: str
     description: Optional[str] = ""
     priority: Optional[str] = "medium"
+    difficulty: Optional[str] = "Normal"
     due_date: Optional[str] = None  # e.g. "2024-12-31"
 
     class Config:
@@ -49,6 +50,7 @@ class TaskCreateRequest(BaseModel):
                 "title": "Build login page",
                 "description": "Create the login form with email and password fields",
                 "priority": "high",
+                "difficulty": "Normal",
                 "due_date": "2024-12-31",
             }
         }
@@ -58,6 +60,7 @@ class TaskUpdateRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     priority: Optional[str] = None
+    difficulty: Optional[str] = None
     due_date: Optional[str] = None
 
     class Config:
@@ -65,6 +68,7 @@ class TaskUpdateRequest(BaseModel):
             "example": {
                 "title": "Updated task title",
                 "priority": "low",
+                "difficulty": "Hard",
             }
         }
 
@@ -124,6 +128,7 @@ def format_task(task: Task) -> dict:
         "description": task.description or "",
         "status": task.status,
         "priority": task.priority,
+        "difficulty": getattr(task, "difficulty", "Normal"),
         "due_date": task.due_date,
         "subtasks": [
             {
@@ -196,6 +201,7 @@ def create_task(
         title=data.title,
         description=data.description,
         priority=data.priority or "medium",
+        difficulty=data.difficulty or "Normal",
         due_date=data.due_date,
         status="not_started",
     )
@@ -209,6 +215,7 @@ def create_task(
             task_description=task.description,
             priority=task.priority,
             due_date=task.due_date,
+            difficulty=task.difficulty,
             db=db,
         )
         task.bonus_points = difficulty_data["bonus_points"]
@@ -295,6 +302,10 @@ def update_task(
         if task.due_date != data.due_date:
             task.due_date = data.due_date
             needs_reanalysis = True
+    if data.difficulty is not None:
+        if task.difficulty != data.difficulty:
+            task.difficulty = data.difficulty
+            needs_reanalysis = True
 
     db.commit()
     db.refresh(task)
@@ -306,6 +317,7 @@ def update_task(
                 task_description=task.description,
                 priority=task.priority,
                 due_date=task.due_date,
+                difficulty=task.difficulty,
                 db=db,
             )
             task.bonus_points = difficulty_data["bonus_points"]

@@ -50,6 +50,11 @@ class SubtaskCreateRequest(BaseModel):
         }
 
 
+class BreakdownRequest(BaseModel):
+    difficulty: Optional[str] = None
+    priority: Optional[str] = None
+
+
 # ── Helper: load a task and verify ownership ───────────────────────────────────
 
 def _get_owned_task(task_id: str, user_id, db: Session) -> Task:
@@ -90,6 +95,7 @@ def _get_owned_subtask(subtask_id: str, user_id, db: Session) -> Subtask:
 )
 def breakdown_task(
     task_id: str,
+    data: Optional[BreakdownRequest] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -105,11 +111,17 @@ def breakdown_task(
     """
     task = _get_owned_task(task_id, current_user.id, db)
 
+    # Use values from request body or fall back to task's values
+    difficulty = data.difficulty if data else getattr(task, "difficulty", "Normal")
+    priority = (data.priority if data and data.priority else task.priority) or "medium"
+
     # Call Groq AI
     try:
         subtasks_data = ai_breakdown(
             task_title=task.title,
             task_description=task.description or "",
+            priority=priority,
+            difficulty=difficulty,
             db=db,
         )
         if not subtasks_data:

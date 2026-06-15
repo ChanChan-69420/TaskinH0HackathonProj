@@ -44,6 +44,9 @@ class Task(Base, TimestampMixin):
     # low | medium | high  — optional; default medium
     priority = Column(String(10), nullable=False, default="medium")
 
+    # Easy | Normal | Hard  — optional; default Normal
+    difficulty = Column(String(20), nullable=False, default="Normal")
+
     # Optional due date (stored as string — keep it simple for the hackathon)
     due_date = Column(String(20), nullable=True)
 

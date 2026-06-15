@@ -162,9 +162,15 @@ def _chat(prompt: str) -> str:
 
 # ── Public API Functions ──────────────────────────────────────────────────────
 
-def breakdown_task(task_title: str, task_description: str, db: Session = None) -> list[dict]:
+def breakdown_task(
+    task_title: str,
+    task_description: str,
+    priority: Optional[str] = None,
+    difficulty: Optional[str] = None,
+    db: Session = None
+) -> list[dict]:
     try:
-        cache_key = _make_cache_key("breakdown", task_title, task_description or "")
+        cache_key = _make_cache_key("breakdown", task_title, task_description or "", priority or "", difficulty or "")
         cached = _get_cache(db, cache_key)
         if cached and isinstance(cached, list):
             return cached
@@ -174,6 +180,14 @@ def breakdown_task(task_title: str, task_description: str, db: Session = None) -
         For each subtask, estimate the time in minutes and suggest a fair point reward (between 5 and 30) based on complexity.
         Task Title: {task_title}
         Task Description: {task_description or 'None'}
+        Task Urgency/Priority: {priority or 'medium'}
+        Task Difficulty: {difficulty or 'Normal'}
+
+        Scoring logic:
+        - If Task Difficulty is 'Easy', keep the subtask points on the lower end (e.g. 5 to 10 points per subtask).
+        - If Task Difficulty is 'Normal', suggest moderate subtask points (e.g. 10 to 20 points per subtask).
+        - If Task Difficulty is 'Hard', suggest higher subtask points (e.g. 15 to 30 points per subtask).
+        - Use Task Urgency/Priority to scale the points slightly higher if urgent.
 
         Return ONLY a JSON array with this format:
         [
@@ -248,10 +262,17 @@ def analyze_reward(reward_name: str, reward_description: str, db: Session = None
         return default_resp
 
 
-def analyze_task_difficulty(task_title: str, task_description: str, priority: str, due_date: str, db: Session = None) -> dict:
+def analyze_task_difficulty(
+    task_title: str,
+    task_description: str,
+    priority: str,
+    due_date: str,
+    difficulty: Optional[str] = None,
+    db: Session = None
+) -> dict:
     default_resp = {"bonus_points": 50, "reason": "Default"}
     try:
-        cache_key = _make_cache_key("difficulty", task_title, task_description or "", priority or "", due_date or "")
+        cache_key = _make_cache_key("difficulty", task_title, task_description or "", priority or "", due_date or "", difficulty or "")
         cached = _get_cache(db, cache_key)
         if cached and isinstance(cached, dict):
             return cached
@@ -260,14 +281,15 @@ def analyze_task_difficulty(task_title: str, task_description: str, priority: st
         Analyze this task's difficulty and urgency to suggest bonus points (25-200).
         Task Title: {task_title}
         Task Description: {task_description or 'None'}
-        Priority: {priority or 'None'}
+        Priority (Urgency): {priority or 'None'}
+        User-specified Difficulty: {difficulty or 'None'}
         Due Date: {due_date or 'None'}
 
         Scoring logic:
-        - 25-50: easy
-        - 50-100: moderate
-        - 100-150: hard or urgent
-        - 150-200: very hard AND urgent
+        - If User-specified Difficulty is 'Easy', bonus points should be on the lower end (25-50).
+        - If User-specified Difficulty is 'Normal', bonus points should be moderate (50-100).
+        - If User-specified Difficulty is 'Hard', bonus points should be high (100-150 or more).
+        - Priority/Urgency should also scale the points accordingly.
 
         Return ONLY a JSON object with this format:
         {{"bonus_points": 75, "reason": "Your explanation"}}
