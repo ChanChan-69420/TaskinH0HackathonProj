@@ -1,6 +1,8 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/lib/auth-context"
+import { LogOut } from "lucide-react"
 
 export type Tab = "dashboard" | "tasks" | "pomodoro" | "profile" | "shop"
 
@@ -9,10 +11,12 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "tasks", label: "TASKS" },
   { id: "pomodoro", label: "POMODORO" },
   { id: "profile", label: "PROFILE" },
-  { id: "shop", label: "SHOP" },
+  { id: "shop", label: "SHOP & PURCHASES" },
 ]
 
 export function TopNav({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
+  const { logout } = useAuth()
+
   return (
     <nav className="flex items-center justify-center gap-3 pt-4 sm:gap-8 sm:pt-6">
       {TABS.map((tab) => {
@@ -36,6 +40,15 @@ export function TopNav({ active, onChange }: { active: Tab; onChange: (t: Tab) =
           </button>
         )
       })}
+      {/* Logout button */}
+      <button
+        type="button"
+        onClick={logout}
+        className="ml-2 flex items-center gap-1.5 px-2 py-2 font-sans text-sm tracking-wider text-foreground/50 transition-colors hover:text-red-400 sm:text-base"
+        aria-label="Log out"
+      >
+        <LogOut className="h-4 w-4" />
+      </button>
     </nav>
   )
 }

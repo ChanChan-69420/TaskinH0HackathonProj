@@ -11,16 +11,29 @@ from sqlalchemy.orm import sessionmaker, Session
 from app.config import DATABASE_URL
 
 # ── Engine ────────────────────────────────────────────────────────────────────
-# pool_pre_ping=True tells SQLAlchemy to test the connection before using it —
-# essential for AWS RDS which drops idle connections after a few minutes.
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    # AWS RDS requires SSL in many configurations; psycopg2 reads the SSL mode
-    # from the connection string itself (sslmode=require) if you include it.
-    # The connect_timeout prevents hanging on bad credentials / unreachable host.
-    connect_args={"connect_timeout": 10},
-)
+try:
+    if DATABASE_URL.startswith("postgresql"):
+        # Test connection quickly using a 3-second timeout
+        test_engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 3})
+        with test_engine.connect() as conn:
+            pass
+        test_engine.dispose()
+        
+        # Connection works! Setup the production PostgreSQL engine.
+        engine = create_engine(
+            DATABASE_URL,
+            pool_pre_ping=True,
+            connect_args={"connect_timeout": 10},
+        )
+    else:
+        engine = create_engine(DATABASE_URL)
+except Exception as e:
+    print(f"PostgreSQL connection failed: {e}")
+    print("Falling back to local SQLite database (todo.db)...")
+    engine = create_engine(
+        "sqlite:///./todo.db",
+        connect_args={"check_same_thread": False}
+    )
 
 # ── Session factory ───────────────────────────────────────────────────────────
 SessionLocal = sessionmaker(

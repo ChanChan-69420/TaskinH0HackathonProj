@@ -13,31 +13,27 @@ export function PomodoroTab() {
   const [remainingSeconds, setRemainingSeconds] = useState(25 * 60)
   const [customMinutes, setCustomMinutes] = useState("25")
   const [customSeconds, setCustomSeconds] = useState("00")
-  const [autoRepeat, setAutoRepeat] = useState(false)
 
-  // Timer loop
+  // Timer loop — Task 10: auto-repeat removed, timer always stops at 0
   useEffect(() => {
     if (!isRunning) return
 
     const interval = setInterval(() => {
       setRemainingSeconds((prev) => {
         if (prev <= 1) {
-          if (autoRepeat) {
-            return totalSeconds
-          } else {
-            setIsRunning(false)
-            return 0
-          }
+          setIsRunning(false)
+          return 0
         }
         return prev - 1
       })
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [isRunning, autoRepeat, totalSeconds])
+  }, [isRunning])
 
+  // Task 9: No upper limit on minutes — use Infinity so the user can set however long they want
   const handleSetCustomTime = () => {
-    const mins = Math.max(0, Math.min(59, parseInt(customMinutes) || 0))
+    const mins = Math.max(0, parseInt(customMinutes) || 0)
     const secs = Math.max(0, Math.min(59, parseInt(customSeconds) || 0))
     const newTotal = mins * 60 + secs
     setTotalSeconds(newTotal)
@@ -162,7 +158,6 @@ export function PomodoroTab() {
               <input
                 type="number"
                 min="0"
-                max="59"
                 value={customMinutes}
                 onChange={(e) => setCustomMinutes(e.target.value)}
                 className="w-24 rounded border border-panel-border bg-input/40 px-2 py-2 text-center font-mono text-lg text-foreground focus:outline-none focus:ring-1 focus:ring-cyan"
@@ -190,25 +185,6 @@ export function PomodoroTab() {
           >
             SET TIME
           </button>
-
-          {/* Auto-Repeat Toggle */}
-          <div className="flex items-center justify-between pt-4">
-            <label className="font-sans text-sm tracking-widest text-foreground/70">AUTO-REPEAT</label>
-            <button
-              onClick={() => setAutoRepeat(!autoRepeat)}
-              className={cn(
-                "relative h-6 w-12 rounded-full transition-colors",
-                autoRepeat ? "bg-cyan" : "bg-panel-border",
-              )}
-            >
-              <div
-                className={cn(
-                  "absolute top-1 h-4 w-4 rounded-full bg-background transition-transform",
-                  autoRepeat ? "translate-x-6" : "translate-x-1",
-                )}
-              />
-            </button>
-          </div>
         </div>
       </div>
     </div>
