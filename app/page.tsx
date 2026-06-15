@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useRef, type KeyboardEvent, type ClipboardEvent } from "react"
+import { useState, useRef, useEffect, type KeyboardEvent, type ClipboardEvent } from "react"
 import { AuthProvider, useAuth } from "@/lib/auth-context"
 import { MainApp } from "@/components/main-app"
+import Script from "next/script"
 
 // ─── Google "G" pixel-style SVG ────────────────────────────────────────────
 function GoogleIcon() {
@@ -86,10 +87,56 @@ function LoginView({
   onSwitch: () => void
   onForgot: () => void
 }) {
-  const { login, error, clearError } = useAuth()
+  const { login, loginWithGoogle, error, clearError } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const googleBtnRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    let active = true
+
+    const initializeGoogleSignIn = () => {
+      const g = (window as any).google
+      if (typeof window !== "undefined" && g && googleBtnRef.current) {
+        g.accounts.id.initialize({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "774225900282-1nmsjbiqplgl186t03rmoo1clev9f2fb.apps.googleusercontent.com",
+          callback: async (response: any) => {
+            if (!active) return
+            setLoading(true)
+            try {
+              await loginWithGoogle(response.credential)
+            } catch (err) {
+              console.error("Google sign in failed:", err)
+            } finally {
+              if (active) setLoading(false)
+            }
+          },
+        })
+
+        g.accounts.id.renderButton(googleBtnRef.current, {
+          theme: "filled_blue",
+          size: "large",
+          width: 320,
+          text: "signin_with",
+          shape: "square",
+        })
+      }
+    }
+
+    const interval = setInterval(() => {
+      const g = (window as any).google
+      if (typeof window !== "undefined" && g && googleBtnRef.current) {
+        initializeGoogleSignIn()
+        clearInterval(interval)
+      }
+    }, 100)
+
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [loginWithGoogle])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -111,19 +158,9 @@ function LoginView({
           SIGN IN
         </h1>
 
-        {/* Google button (placeholder) */}
-        <button
-          type="button"
-          className="
-            flex w-full items-center justify-center gap-3 border border-panel-border
-            bg-panel px-6 py-3 font-mono text-base text-foreground backdrop-blur-sm
-            transition-colors hover:border-cyan hover:text-cyan
-          "
-          aria-label="Login with Google"
-        >
-          <GoogleIcon />
-          Login with Google
-        </button>
+        {/* Google Sign-In Button */}
+        <div className="flex w-full justify-center" ref={googleBtnRef} id="google-signin-btn" />
+
 
         {/* OR divider */}
         <div className="flex items-center gap-3">
@@ -332,14 +369,24 @@ function ForgotView({
   onSend,
   onBack,
 }: {
-  onSend: (email: string) => void
+  onSend: (email: string) => Promise<void>
   onBack: () => void
 }) {
+  const { error, clearError } = useAuth()
   const [email, setEmail] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (email.trim()) onSend(email.trim())
+    if (!email.trim() || loading) return
+    setLoading(true)
+    try {
+      await onSend(email.trim())
+    } catch {
+      // Error is stored in auth context
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -352,6 +399,10 @@ function ForgotView({
           Enter your registered email to receive an OTP
         </p>
 
+        {error && (
+          <p className="text-center font-mono text-xs text-urgent">{error}</p>
+        )}
+
         <div className="flex flex-col gap-2">
           <label className="font-mono text-base text-foreground" htmlFor="forgot-email">
             Email
@@ -361,12 +412,14 @@ function ForgotView({
             type="email"
             placeholder="your@email.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); clearError() }}
             autoComplete="email"
           />
         </div>
 
-        <PixelButton type="submit">SEND OTP</PixelButton>
+        <PixelButton type="submit" disabled={loading}>
+          {loading ? "SENDING..." : "SEND OTP"}
+        </PixelButton>
 
         <button
           type="button"
@@ -385,15 +438,21 @@ function ForgotView({
 // ─────────────────────────────────────────────────────────────────────────────
 function OtpView({
   email,
-  onVerify,
+  onSuccess,
   onResend,
 }: {
   email: string
-  onVerify: () => void
-  onResend: () => void
+  onSuccess: () => void
+  onResend: () => Promise<void>
 }) {
+  const { resetPassword, error: apiError, clearError } = useAuth()
   const [digits, setDigits] = useState(["", "", "", ""])
-  const [error, setError] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [localError, setLocalError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [resending, setResending] = useState(false)
+
   const refs = [
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
@@ -406,7 +465,8 @@ function OtpView({
     const next = [...digits]
     next[idx] = char
     setDigits(next)
-    setError("")
+    setLocalError("")
+    clearError()
     if (char && idx < 3) refs[idx + 1].current?.focus()
   }
 
@@ -422,21 +482,64 @@ function OtpView({
     const next = ["", "", "", ""]
     pasted.split("").forEach((c, i) => { next[i] = c })
     setDigits(next)
+    setLocalError("")
+    clearError()
     refs[Math.min(pasted.length, 3)].current?.focus()
   }
 
-  function handleVerify() {
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault()
+    setLocalError("")
+    clearError()
+
     const code = digits.join("")
     if (code.length < 4) {
-      setError("Please enter all 4 digits.")
+      setLocalError("Please enter all 4 digits.")
       return
     }
-    onVerify()
+
+    if (!password) {
+      setLocalError("Please enter a new password.")
+      return
+    }
+
+    if (password.length < 6) {
+      setLocalError("Password must be at least 6 characters.")
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setLocalError("Passwords do not match.")
+      return
+    }
+
+    setLoading(true)
+    try {
+      await resetPassword(email, code, password)
+      onSuccess()
+    } catch {
+      // Error is set in auth context
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleResend() {
+    setResending(true)
+    setLocalError("")
+    clearError()
+    try {
+      await onResend()
+    } catch {
+      // Error is set in auth context
+    } finally {
+      setResending(false)
+    }
   }
 
   return (
     <PixelBackground>
-      <div className="game-panel flex flex-col gap-6 p-8">
+      <form onSubmit={handleVerify} className="game-panel flex flex-col gap-6 p-8">
         <h1 className="text-center font-sans text-2xl tracking-widest text-foreground">
           RESET PASSWORD
         </h1>
@@ -468,20 +571,53 @@ function OtpView({
           ))}
         </div>
 
-        {error && (
-          <p className="text-center font-mono text-xs text-urgent">{error}</p>
+        {/* New Password */}
+        <div className="flex flex-col gap-2">
+          <label className="font-mono text-base text-foreground" htmlFor="reset-new-password">
+            New Password
+          </label>
+          <PixelInput
+            id="reset-new-password"
+            type="password"
+            placeholder="Min 6 characters"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); setLocalError(""); clearError() }}
+            autoComplete="new-password"
+          />
+        </div>
+
+        {/* Confirm Password */}
+        <div className="flex flex-col gap-2">
+          <label className="font-mono text-base text-foreground" htmlFor="reset-confirm-password">
+            Confirm Password
+          </label>
+          <PixelInput
+            id="reset-confirm-password"
+            type="password"
+            placeholder="Re-enter password"
+            value={confirmPassword}
+            onChange={(e) => { setConfirmPassword(e.target.value); setLocalError(""); clearError() }}
+            autoComplete="new-password"
+          />
+        </div>
+
+        {(localError || apiError) && (
+          <p className="text-center font-mono text-xs text-urgent">{localError || apiError}</p>
         )}
 
-        <PixelButton onClick={handleVerify}>VERIFY OTP</PixelButton>
+        <PixelButton type="submit" disabled={loading}>
+          {loading ? "RESETTING..." : "RESET PASSWORD"}
+        </PixelButton>
 
         <button
           type="button"
-          onClick={onResend}
-          className="font-mono text-sm text-cyan underline underline-offset-4 transition-opacity hover:opacity-80"
+          onClick={handleResend}
+          disabled={resending}
+          className="font-mono text-sm text-cyan underline underline-offset-4 transition-opacity hover:opacity-80 disabled:opacity-50"
         >
-          Resend Code
+          {resending ? "RESENDING..." : "Resend Code"}
         </button>
-      </div>
+      </form>
     </PixelBackground>
   )
 }
@@ -493,7 +629,7 @@ function OtpView({
 type AuthView = "login" | "register" | "forgot" | "otp"
 
 function AuthGate() {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, sendForgotPasswordOtp, clearError } = useAuth()
   const [view, setView] = useState<AuthView>("login")
   const [forgotEmail, setForgotEmail] = useState("")
 
@@ -520,8 +656,15 @@ function AuthGate() {
   if (view === "forgot") {
     return (
       <ForgotView
-        onSend={(email) => { setForgotEmail(email); setView("otp") }}
-        onBack={() => setView("login")}
+        onSend={async (email) => {
+          await sendForgotPasswordOtp(email)
+          setForgotEmail(email)
+          setView("otp")
+        }}
+        onBack={() => {
+          clearError()
+          setView("login")
+        }}
       />
     )
   }
@@ -531,10 +674,12 @@ function AuthGate() {
     return (
       <OtpView
         email={forgotEmail}
-        onVerify={() => setView("login")}
-        onResend={() => {
-          setView("forgot")
-          setTimeout(() => setView("otp"), 10)
+        onSuccess={() => {
+          clearError()
+          setView("login")
+        }}
+        onResend={async () => {
+          await sendForgotPasswordOtp(forgotEmail)
         }}
       />
     )
@@ -555,6 +700,7 @@ function AuthGate() {
 export default function Page() {
   return (
     <AuthProvider>
+      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
       <AuthGate />
     </AuthProvider>
   )

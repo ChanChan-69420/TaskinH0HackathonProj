@@ -35,6 +35,7 @@ ACCESS_TOKEN_EXPIRE_DAYS: int = 7
 # AI endpoints return a clear error if key is missing.
 # Add GROQ_API_KEY to your .env before testing Part 4 / Part 5.
 GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "").strip()
+GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "").strip()
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 _raw_origins = os.getenv("ALLOWED_ORIGINS", "*")

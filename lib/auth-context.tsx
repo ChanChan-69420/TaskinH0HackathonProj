@@ -18,8 +18,11 @@ type AuthState = {
   error: string | null
   login: (email: string, password: string) => Promise<void>
   register: (email: string, username: string, password: string) => Promise<void>
+  loginWithGoogle: (credential: string) => Promise<void>
   logout: () => void
   clearError: () => void
+  sendForgotPasswordOtp: (email: string) => Promise<void>
+  resetPassword: (email: string, otp: string, password: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -85,6 +88,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const loginWithGoogle = useCallback(async (credential: string) => {
+    setError(null)
+    try {
+      const data = await api.post("/api/auth/google", { credential })
+      const authUser: AuthUser = {
+        id: data.id,
+        email: data.email,
+        username: data.username,
+        token: data.token,
+      }
+      localStorage.setItem("token", authUser.token)
+      localStorage.setItem("user", JSON.stringify(authUser))
+      setUser(authUser)
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Google Sign-In failed. Please try again."
+      setError(message)
+      throw err
+    }
+  }, [])
+
   const logout = useCallback(() => {
     localStorage.removeItem("token")
     localStorage.removeItem("user")
@@ -93,9 +116,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearError = useCallback(() => setError(null), [])
 
+  const sendForgotPasswordOtp = useCallback(async (email: string) => {
+    setError(null)
+    try {
+      await api.post("/api/auth/forgot-password", { email })
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to send OTP. Please try again."
+      setError(message)
+      throw err
+    }
+  }, [])
+
+  const resetPassword = useCallback(async (email: string, otp: string, new_password: string) => {
+    setError(null)
+    try {
+      await api.post("/api/auth/reset-password", { email, otp, new_password })
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Password reset failed. Please try again."
+      setError(message)
+      throw err
+    }
+  }, [])
+
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, isLoading, error, login, register, logout, clearError }}
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        error,
+        login,
+        register,
+        loginWithGoogle,
+        logout,
+        clearError,
+        sendForgotPasswordOtp,
+        resetPassword,
+      }}
     >
       {children}
     </AuthContext.Provider>
