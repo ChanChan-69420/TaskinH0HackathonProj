@@ -368,7 +368,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       )
     } catch (err) {
       console.error("Failed to redeem reward:", err)
-      throw err
+      setPurchases((prev) => prev.filter((p) => p.id !== id))
     }
   }, [])
 
@@ -383,7 +383,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setShopItems((prev) => [...prev, mapBackendReward(created)])
     } catch (err) {
       console.error("Failed to add shop item:", err)
-      throw err
     }
   }, [])
 
