@@ -135,10 +135,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true)
 
-      // #region agent log
-      fetch('http://127.0.0.1:7901/ingest/bb9cf196-d57d-436b-8df5-c292791dec1b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'df382b'},body:JSON.stringify({sessionId:'df382b',runId:'pre-fix',hypothesisId:'E',location:'lib/game-context.tsx:refreshData',message:'refreshData invoked',data:{hasToken:typeof window!=='undefined'&&!!localStorage.getItem('token'),pageOrigin:typeof window!=='undefined'?window.location.origin:null},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-
       const [tasksData, rewardsData, statsData] = await Promise.all([
         api.get("/api/tasks"),
         api.get("/api/rewards"),
@@ -161,7 +157,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setLevel(pts.level)
       setStreak(statsData.streak)
     } catch (err) {
-      console.error("Failed to load game data:", err)
+      console.error("Failed to load game data (backend unavailable):", err)
+      // Fall back to empty state so the UI renders without hanging
+      setTasks([])
+      setShopItems([])
+      setPurchases([])
+      setCoins(0)
+      setXp(0)
+      setLevel(1)
+      setStreak(0)
     } finally {
       setIsLoading(false)
     }
