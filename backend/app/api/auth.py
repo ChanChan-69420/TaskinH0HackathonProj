@@ -178,8 +178,11 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     db.add(new_user)
     db.flush()  # flush so new_user.id is available before we create gamification
 
-    # Every user starts with 0 points and level 1
-    gamification = UserGamification(user_id=new_user.id)
+    gamification = UserGamification(
+        user_id=new_user.id,
+        current_streak=1,
+        last_active_at=datetime.now(timezone.utc).date(),
+    )
     db.add(gamification)
 
     db.commit()
@@ -229,6 +232,14 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     # Check the password
     if not verify_password(data.password, user.password_hash):
         raise invalid_error
+
+    gamification = db.query(UserGamification).filter(UserGamification.user_id == user.id).first()
+    if not gamification:
+        gamification = UserGamification(user_id=user.id)
+        db.add(gamification)
+        db.flush()
+    gamification.update_streak()
+    db.commit()
 
     token = create_access_token(str(user.id))
 
@@ -319,11 +330,22 @@ def google_login(data: GoogleLoginRequest, db: Session = Depends(get_db)):
         db.add(user)
         db.flush()
 
-        # Create gamification details
-        gamification = UserGamification(user_id=user.id)
+        gamification = UserGamification(
+            user_id=user.id,
+            current_streak=1,
+            last_active_at=datetime.now(timezone.utc).date(),
+        )
         db.add(gamification)
         db.commit()
         db.refresh(user)
+    else:
+        gamification = db.query(UserGamification).filter(UserGamification.user_id == user.id).first()
+        if not gamification:
+            gamification = UserGamification(user_id=user.id)
+            db.add(gamification)
+            db.flush()
+        gamification.update_streak()
+        db.commit()
 
     token = create_access_token(str(user.id))
 
