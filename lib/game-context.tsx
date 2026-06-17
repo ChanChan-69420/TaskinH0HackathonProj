@@ -3,6 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { api } from "@/lib/api"
+import { useAuth } from "@/lib/auth-context"
 
 /* ── Frontend types (unchanged for component compatibility) ──────────────── */
 
@@ -13,6 +14,7 @@ export type SubTask = {
   id: string
   title: string
   done: boolean
+  points: number
 }
 
 export type Task = {
@@ -25,6 +27,8 @@ export type Task = {
   urgency: Urgency
   difficulty: Difficulty
   subtasks: SubTask[]
+  bonusPoints: number
+  totalPoints: number
 }
 
 export type ShopItem = {
@@ -54,7 +58,7 @@ type GameState = {
   isLoading: boolean
   toggleTask: (id: string) => void
   toggleSub: (taskId: string, subId: string) => void
-  addTask: (task: Omit<Task, "id">) => Promise<void>
+  addTask: (task: Omit<Task, "id" | "bonusPoints" | "totalPoints">) => Promise<void>
   addAiTask: (task: {
     title: string
     description: string
@@ -67,6 +71,9 @@ type GameState = {
   addShopItem: (item: Omit<ShopItem, "id">) => Promise<void>
   removeShopItem: (id: string) => void
   refreshData: () => Promise<void>
+  showWalkthrough: boolean
+  setShowWalkthrough: (val: boolean) => void
+  startWalkthrough: () => void
 }
 
 const GameContext = createContext<GameState | null>(null)
@@ -74,6 +81,14 @@ const GameContext = createContext<GameState | null>(null)
 /* ── Mappers: backend → frontend ─────────────────────────────────────────── */
 
 function mapBackendTask(bt: any): Task {
+  const subtasks = (bt.subtasks || []).map((s: any) => ({
+    id: String(s.id),
+    title: s.title,
+    done: s.status === "completed",
+    points: s.points || 10,
+  }))
+  const bonusPoints = bt.bonus_points || 50
+  const subtaskPoints = subtasks.reduce((sum: number, s: any) => sum + s.points, 0)
   return {
     id: String(bt.id),
     title: bt.title,
@@ -83,11 +98,9 @@ function mapBackendTask(bt: any): Task {
     completedAt: bt.status === "completed" ? Date.now() : undefined,
     urgency: bt.priority === "high" ? "Urgent" : "Normal",
     difficulty: (bt.difficulty as Difficulty) || "Normal",
-    subtasks: (bt.subtasks || []).map((s: any) => ({
-      id: String(s.id),
-      title: s.title,
-      done: s.status === "completed",
-    })),
+    subtasks,
+    bonusPoints,
+    totalPoints: subtaskPoints + bonusPoints,
   }
 }
 
@@ -123,11 +136,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [coins, setCoins] = useState(0)
   const [xp, setXp] = useState(0)
   const [level, setLevel] = useState(1)
-  const [streak] = useState(0)
+  const [streak, setStreak] = useState(0)
   const [tasks, setTasks] = useState<Task[]>([])
   const [shopItems, setShopItems] = useState<ShopItem[]>([])
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const { user } = useAuth()
+  const [showWalkthrough, setShowWalkthrough] = useState(false)
+
+  // Auto-trigger walkthrough on login/mount if not completed yet
+  useEffect(() => {
+    if (user && !user.has_completed_onboarding) {
+      setShowWalkthrough(true)
+    }
+  }, [user])
+
+  const startWalkthrough = useCallback(() => {
+    setShowWalkthrough(true)
+  }, [])
 
   /* ── Fetch all data from API ─────────────────────────────────────────── */
 
@@ -155,6 +181,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setCoins(pts.total_points)
       setXp(pts.total_points)
       setLevel(pts.level)
+      setStreak(statsData.streak || 0)
     } catch (err) {
       console.error("Failed to load game data:", err)
     } finally {
@@ -203,6 +230,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           setCoins(pts.total_points)
           setXp(pts.total_points)
           setLevel(pts.level)
+          setStreak(stats.streak || 0)
         })
         .catch(console.error)
 
@@ -258,7 +286,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   /* ── Create a new task with subtasks ──────────────────────────────────── */
 
-  const addTask = useCallback(async (task: Omit<Task, "id">) => {
+  const addTask = useCallback(async (task: Omit<Task, "id" | "bonusPoints" | "totalPoints">) => {
     try {
       // 1. Create the task
       const created = await api.post("/api/tasks", {
@@ -411,6 +439,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         addShopItem,
         removeShopItem,
         refreshData,
+        showWalkthrough,
+        setShowWalkthrough,
+        startWalkthrough,
       }}
     >
       {children}

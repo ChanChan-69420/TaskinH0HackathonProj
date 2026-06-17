@@ -18,7 +18,7 @@ rewards       — one-to-many; cascade-deletes rewards when user is deleted
 """
 
 import uuid
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, DateTime, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -37,6 +37,8 @@ class User(Base, TimestampMixin):
     email = Column(String(255), unique=True, index=True, nullable=False)
     username = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
+    has_completed_onboarding = Column(Boolean, default=False, nullable=False)
+    avatar_id = Column(String(50), default="avatar-male", nullable=False)
 
     # OTP for password resets
     reset_otp = Column(String(10), nullable=True)

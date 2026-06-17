@@ -23,7 +23,11 @@ with engine.connect() as conn:
         ("tasks", "difficulty", "ALTER TABLE tasks ADD COLUMN difficulty VARCHAR(20) DEFAULT 'Normal';" if is_sqlite else "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS difficulty VARCHAR(20) DEFAULT 'Normal';"),
         ("rewards", "redeemed", "ALTER TABLE rewards ADD COLUMN redeemed BOOLEAN DEFAULT FALSE;" if is_sqlite else "ALTER TABLE rewards ADD COLUMN IF NOT EXISTS redeemed BOOLEAN DEFAULT FALSE;"),
         ("users", "reset_otp", "ALTER TABLE users ADD COLUMN reset_otp VARCHAR(10) NULL;" if is_sqlite else "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(10) NULL;"),
-        ("users", "reset_otp_expires_at", "ALTER TABLE users ADD COLUMN reset_otp_expires_at TIMESTAMP NULL;" if is_sqlite else "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP NULL;")
+        ("users", "reset_otp_expires_at", "ALTER TABLE users ADD COLUMN reset_otp_expires_at TIMESTAMP NULL;" if is_sqlite else "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP NULL;"),
+        ("users", "has_completed_onboarding", "ALTER TABLE users ADD COLUMN has_completed_onboarding BOOLEAN DEFAULT FALSE;" if is_sqlite else "ALTER TABLE users ADD COLUMN IF NOT EXISTS has_completed_onboarding BOOLEAN DEFAULT FALSE;"),
+        ("users", "avatar_id", "ALTER TABLE users ADD COLUMN avatar_id VARCHAR(50) DEFAULT 'avatar-male';" if is_sqlite else "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_id VARCHAR(50) DEFAULT 'avatar-male';"),
+        ("user_gamification", "current_streak", "ALTER TABLE user_gamification ADD COLUMN current_streak INTEGER DEFAULT 0;" if is_sqlite else "ALTER TABLE user_gamification ADD COLUMN IF NOT EXISTS current_streak INTEGER DEFAULT 0;"),
+        ("user_gamification", "last_active_at", "ALTER TABLE user_gamification ADD COLUMN last_active_at DATE NULL;" if is_sqlite else "ALTER TABLE user_gamification ADD COLUMN IF NOT EXISTS last_active_at DATE NULL;")
     ]
     for table, col, sql in statements:
         try:

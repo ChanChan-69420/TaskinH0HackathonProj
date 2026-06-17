@@ -9,6 +9,8 @@ export type AuthUser = {
   email: string
   username: string
   token: string
+  has_completed_onboarding: boolean
+  avatar_id: string
 }
 
 type AuthState = {
@@ -23,6 +25,8 @@ type AuthState = {
   clearError: () => void
   sendForgotPasswordOtp: (email: string) => Promise<void>
   resetPassword: (email: string, otp: string, password: string) => Promise<void>
+  completeOnboarding: () => Promise<void>
+  updateAvatar: (avatarId: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -57,6 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: data.email,
         username: data.username,
         token: data.token,
+        has_completed_onboarding: data.has_completed_onboarding || false,
+        avatar_id: data.avatar_id || "avatar-male",
       }
       localStorage.setItem("token", authUser.token)
       localStorage.setItem("user", JSON.stringify(authUser))
@@ -77,6 +83,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: data.email,
         username: data.username,
         token: data.token,
+        has_completed_onboarding: data.has_completed_onboarding || false,
+        avatar_id: data.avatar_id || "avatar-male",
       }
       localStorage.setItem("token", authUser.token)
       localStorage.setItem("user", JSON.stringify(authUser))
@@ -97,6 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: data.email,
         username: data.username,
         token: data.token,
+        has_completed_onboarding: data.has_completed_onboarding || false,
+        avatar_id: data.avatar_id || "avatar-male",
       }
       localStorage.setItem("token", authUser.token)
       localStorage.setItem("user", JSON.stringify(authUser))
@@ -138,6 +148,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const completeOnboarding = useCallback(async () => {
+    if (!user) return
+    try {
+      await api.post("/api/user/complete-onboarding")
+      const updatedUser = { ...user, has_completed_onboarding: true }
+      localStorage.setItem("user", JSON.stringify(updatedUser))
+      setUser(updatedUser)
+    } catch (err) {
+      console.error("Failed to complete onboarding:", err)
+      throw err
+    }
+  }, [user])
+
+  const updateAvatar = useCallback(async (avatarId: string) => {
+    if (!user) return
+    try {
+      await api.patch("/api/user/avatar", { avatar_id: avatarId })
+      const updatedUser = { ...user, avatar_id: avatarId }
+      localStorage.setItem("user", JSON.stringify(updatedUser))
+      setUser(updatedUser)
+    } catch (err) {
+      console.error("Failed to update avatar:", err)
+      throw err
+    }
+  }, [user])
+
   return (
     <AuthContext.Provider
       value={{
@@ -152,6 +188,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearError,
         sendForgotPasswordOtp,
         resetPassword,
+        completeOnboarding,
+        updateAvatar,
       }}
     >
       {children}

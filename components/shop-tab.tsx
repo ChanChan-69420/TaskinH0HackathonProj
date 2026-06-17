@@ -64,7 +64,7 @@ export function ShopTab() {
   const field = "w-full border border-panel-border bg-input/40 px-3 py-2 font-mono text-lg text-foreground outline-none focus:border-cyan"
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[1.6fr_1fr]">
+    <div id="shop-tab-container" className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[1.6fr_1fr]">
       {/* Left Column: Rewards Market & Purchase History */}
       <div className="space-y-6">
         {/* Rewards Market */}

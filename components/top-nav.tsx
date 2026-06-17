@@ -43,6 +43,7 @@ export function TopNav({ active, onChange }: { active: Tab; onChange: (t: Tab) =
           return (
             <button
               key={tab.id}
+              id={`nav-tab-${tab.id}`}
               type="button"
               onClick={() => onChange(tab.id)}
               className={cn(

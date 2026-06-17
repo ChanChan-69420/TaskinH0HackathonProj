@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useGame } from "@/lib/game-context"
+import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
 
 // PixelEyeIcon – inline SVG eye in pixel style for the account detail toggles
@@ -32,9 +33,10 @@ type UserProfile = {
 }
 
 export function ProfileTab() {
-  const { level, xp, coins, streak } = useGame()
+  const { level, xp, coins, streak, startWalkthrough } = useGame()
+  const { user } = useAuth()
   const [showEmail, setShowEmail] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
+
   const [profile, setProfile] = useState<UserProfile | null>(null)
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export function ProfileTab() {
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-6">
       {/* Single unified panel */}
-      <section className="game-panel p-6 sm:p-8">
+      <section id="profile-main-card" className="game-panel p-6 sm:p-8">
 
         {/* ── Heading ──────────────────────────────── */}
         <h2 className="mb-5 font-sans text-2xl tracking-widest text-foreground">
@@ -73,7 +75,7 @@ export function ProfileTab() {
             style={{ width: 120, height: 120 }}
           >
             <Image
-              src="/icons/avatar-male.png"
+              src={`/icons/${user?.avatar_id || "avatar-male"}.png`}
               alt="User avatar"
               width={120}
               height={120}
@@ -177,30 +179,6 @@ export function ProfileTab() {
             </div>
           </div>
 
-          {/* Password row */}
-          <div className="flex items-center gap-4">
-            <span
-              className="w-28 flex-shrink-0 font-sans text-sm tracking-widest text-foreground"
-            >
-              PASSWORD
-            </span>
-            <div
-              className="flex flex-1 items-center border border-panel-border"
-              style={{ background: "oklch(0.35 0.025 220 / 50%)" }}
-            >
-              <span className="flex-1 px-4 py-3 font-mono text-lg tracking-widest text-foreground/90">
-                {"• • • • • • •"}
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                className="flex h-full items-center justify-center px-4 py-3 text-foreground/70 transition-colors hover:text-cyan"
-              >
-                <PixelEyeIcon open={showPassword} />
-              </button>
-            </div>
-          </div>
 
           {/* Member since */}
           {profile?.member_since && (
@@ -213,6 +191,20 @@ export function ProfileTab() {
               </span>
             </div>
           )}
+
+          {/* Replay Tutorial row */}
+          <div className="flex items-center gap-4 pt-4 border-t border-panel-border/30">
+            <span className="w-28 flex-shrink-0 font-sans text-sm tracking-widest text-foreground">
+              TUTORIAL
+            </span>
+            <button
+              type="button"
+              onClick={startWalkthrough}
+              className="border border-cyan/60 bg-cyan/10 px-4 py-2 font-sans text-sm tracking-wider text-cyan hover:bg-cyan/20 transition-colors"
+            >
+              REPLAY TUTORIAL
+            </button>
+          </div>
         </div>
 
       </section>

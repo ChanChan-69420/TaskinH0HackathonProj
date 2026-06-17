@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Plus, X, Settings, CalendarDays } from "lucide-react"
 import { useGame, type Difficulty, type Urgency } from "@/lib/game-context"
 import { PixelCheckbox } from "@/components/pixel-checkbox"
@@ -39,6 +40,11 @@ function TaskRow() {
               {task.title}
             </span>
             <span className="flex items-center gap-2">
+              <span className="flex items-center gap-1 font-sans text-xs tracking-wide text-gold/80">
+                <Image src="/icons/coin.png" alt="points" width={14} height={14} className="pixelated" />
+                {task.totalPoints}
+              </span>
+              <span className="text-foreground/30">|</span>
               <Tag kind={task.urgency === "Urgent" ? "urgent" : "normal"} label={task.urgency} />
               <span className="text-foreground/40">,</span>
               <Tag
@@ -70,11 +76,14 @@ function TaskRow() {
               <PixelCheckbox checked={sub.done} onChange={() => toggleSub(task.id, sub.id)} className="h-5 w-5" />
               <span
                 className={cn(
-                  "font-mono text-xl tracking-wide",
+                  "flex-1 font-mono text-xl tracking-wide",
                   sub.done ? "text-foreground/55" : "text-foreground",
                 )}
               >
                 {sub.title}
+              </span>
+              <span className="flex items-center gap-1 font-sans text-xs tracking-wide text-gold/60">
+                +{sub.points}
               </span>
             </div>
           ))}
@@ -248,6 +257,7 @@ function ManualGrading() {
           id: `temp-${i}`,
           title: name,
           done: false,
+          points: 10,
         })),
       })
       setTitle("")
@@ -400,7 +410,7 @@ export function TasksTab() {
   const [mode, setMode] = useState<"ai" | "manual">("manual")
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[1.5fr_1fr]">
+    <div id="tasks-tab-container" className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[1.5fr_1fr]">
       <section className="game-panel p-5 sm:p-6">
         {isLoading ? (
           <p className="py-12 text-center font-sans text-sm tracking-wide text-foreground/50">

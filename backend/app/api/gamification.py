@@ -7,6 +7,7 @@ user profile details, and progress bar stats.
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from app.api.deps import get_current_user
 from app.database.connection import get_db
 from app.models.user import User
@@ -40,6 +41,8 @@ def get_user_stats(
     db: Session = Depends(get_db),
 ):
     gamification = _get_or_create_gamification(current_user.id, db)
+    gamification.update_streak()
+    db.commit()
     
     total_points = gamification.total_points
     level = gamification.level
@@ -71,6 +74,7 @@ def get_user_stats(
                 "points_needed_for_next_level": needed,
             }
         },
+        "streak": gamification.get_active_streak(),
         "tasks": {
             "total": total_tasks,
             "completed": completed_tasks,
@@ -124,6 +128,9 @@ def get_user_profile(
         "total_points": gamification.total_points,
         "level": level,
         "level_title": level_title,
+        "streak": gamification.get_active_streak(),
+        "has_completed_onboarding": current_user.has_completed_onboarding,
+        "avatar_id": current_user.avatar_id,
     }
 
 
@@ -147,4 +154,39 @@ def get_user_progress(
         "level": level,
         "percentage_to_next_level": pct,
         "points_needed_for_next_level": needed,
+    }
+
+
+@router.post(
+    "/user/complete-onboarding",
+    summary="Mark the user's onboarding tutorial as completed",
+)
+def complete_onboarding(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    current_user.has_completed_onboarding = True
+    db.commit()
+    return {"status": "success", "message": "Onboarding completed"}
+
+
+class UpdateAvatarRequest(BaseModel):
+    avatar_id: str
+
+
+@router.patch(
+    "/user/avatar",
+    summary="Update the logged-in user's avatar",
+)
+def update_avatar(
+    data: UpdateAvatarRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    current_user.avatar_id = data.avatar_id
+    db.commit()
+    return {
+        "status": "success",
+        "message": "Avatar updated successfully",
+        "avatar_id": data.avatar_id,
     }

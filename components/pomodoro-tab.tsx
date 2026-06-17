@@ -68,7 +68,7 @@ export function PomodoroTab() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="game-panel w-full max-w-2xl space-y-8 p-8">
+      <div id="pomodoro-timer-card" className="game-panel w-full max-w-2xl space-y-8 p-8">
         {/* Task Selector */}
         <div className="flex items-center gap-4">
           <label className="font-sans text-sm tracking-widest text-foreground/70">SELECT TASK</label>

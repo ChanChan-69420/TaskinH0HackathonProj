@@ -125,6 +125,8 @@ class AuthResponse(BaseModel):
     username: str
     token: str
     message: str
+    has_completed_onboarding: bool = False
+    avatar_id: str = "avatar-male"
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -194,6 +196,8 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
         username=new_user.username,
         token=token,
         message=f"Welcome to Gamified To-Do, {new_user.username}! 🎉",
+        has_completed_onboarding=False,
+        avatar_id="avatar-male",
     )
 
 
@@ -238,6 +242,8 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         username=user.username,
         token=token,
         message=f"Welcome back, {user.username}! 👋",
+        has_completed_onboarding=user.has_completed_onboarding,
+        avatar_id=user.avatar_id,
     )
 
 
@@ -335,6 +341,8 @@ def google_login(data: GoogleLoginRequest, db: Session = Depends(get_db)):
         username=user.username,
         token=token,
         message=msg,
+        has_completed_onboarding=user.has_completed_onboarding,
+        avatar_id=user.avatar_id,
     )
 
 
