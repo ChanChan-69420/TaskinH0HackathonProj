@@ -24,7 +24,7 @@ export function TopNav({ active, onChange }: { active: Tab; onChange: (t: Tab) =
       <div className="flex items-center gap-3 flex-shrink-0">
         <div className="relative h-10 w-10 drop-shadow-[0_0_8px_rgba(29,217,208,0.6)]">
           <Image
-            src="/taskin-logo.svg"
+            src="/taskin-logo.png"
             alt="Taskin"
             width={40}
             height={40}

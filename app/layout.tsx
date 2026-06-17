@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   title: 'PixelQuest — Gamified To-Do',
   description: 'A gamified, AI-powered to-do list with real-life rewards.',
   generator: 'v0.app',
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon-16x16.png',
+  },
 }
 
 export default function RootLayout({
