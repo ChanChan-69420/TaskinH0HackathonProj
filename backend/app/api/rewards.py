@@ -7,7 +7,8 @@ GET    /api/rewards                    — list all rewards for the logged-in us
 POST   /api/rewards                    — create a new reward
 PUT    /api/rewards/{reward_id}        — edit a reward's name/description/cost
 DELETE /api/rewards/{reward_id}        — delete a reward
-POST   /api/rewards/{reward_id}/analyze — ask AI to suggest a fair points cost
+POST   /api/rewards/{reward_id}/analyze — ask AI to suggest a fair points cost (existing reward)
+POST   /api/rewards/analyze-text       — ask AI to analyze reward text before creating
 POST   /api/rewards/{reward_id}/claim  — spend points to claim a reward
 
 Real-life rewards examples:
@@ -49,6 +50,19 @@ class RewardCreateRequest(BaseModel):
                 "name": "15 minutes of Instagram",
                 "description": "Guilt-free social media scroll",
                 "cost": 100,
+            }
+        }
+
+
+class AnalyzeTextRequest(BaseModel):
+    name: str
+    description: Optional[str] = ""
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "1 hour of gaming",
+                "description": "Uninterrupted gaming session",
             }
         }
 
@@ -298,7 +312,52 @@ def analyze_reward(
     }
 
 
-# ── Endpoint 6: Claim a Reward ────────────────────────────────────────────────
+# ── Endpoint 6: Analyze reward text directly ──────────────────────────────────
+
+@router.post(
+    "/rewards/analyze-text",
+    summary="Analyze a reward name/description without creating it first",
+)
+def analyze_reward_text(
+    data: AnalyzeTextRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Takes a reward name and optional description and asks AI to suggest a
+    fair points cost. Unlike POST /rewards/{id}/analyze, this does NOT
+    require the reward to be created first — useful for the frontend
+    pricing wizard before the user commits to creating the reward.
+    """
+    try:
+        analysis = ai_analyze_reward(
+            reward_name=data.name,
+            reward_description=data.description or "",
+            db=db,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e),
+        )
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AI service is currently unavailable. Please try again later.",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"AI service error: {e}",
+        )
+
+    return {
+        "suggested_cost": analysis["suggested_cost"],
+        "reasoning": analysis["reasoning"],
+    }
+
+
+# ── Endpoint 7: Claim a Reward ────────────────────────────────────────────────
 
 @router.post(
     "/rewards/{reward_id}/claim",

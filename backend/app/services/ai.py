@@ -233,7 +233,17 @@ def analyze_reward(reward_name: str, reward_description: str, db: Session = None
             return cached
 
         prompt = f"""
-        Suggest a fair points cost for this reward (between 50 and 500).
+        Suggest a fair points cost between 50 and 500 for this reward based on how indulgent/valuable it is.
+
+        Pricing guidelines:
+        - Digital entertainment (Netflix, YouTube, gaming, social media, TV): 250-500 points
+        - Unhealthy treats / snacks / junk food: 150-300 points
+        - Relaxation / leisure (reading, napping, bath): 50-150 points
+        - Healthy rewards (exercise, hobby, walk): 50-150 points
+        - Short breaks (5-15 min): 50-150 points
+        - Long indulgences (30+ min of entertainment): 300-500 points
+        - Food / drinks (coffee, smoothie): 100-250 points
+
         Reward Name: {reward_name}
         Reward Description: {reward_description or 'None'}
 
