@@ -16,7 +16,7 @@ const vt323 = VT323({
 })
 
 export const metadata: Metadata = {
-  title: 'PixelQuest — Gamified To-Do',
+  title: 'Taskin — Gamified To-Do',
   description: 'A gamified, AI-powered to-do list with real-life rewards.',
   generator: 'v0.app',
   icons: {
