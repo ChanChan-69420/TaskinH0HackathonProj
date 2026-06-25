@@ -6,10 +6,10 @@ __v0_jsx-dev-runtime.ts
 .v0-trash/
 .vercel/
 
-# Frontend (Next.js)
-frontend/node_modules/
-frontend/.next/
-frontend/.env*.local
+# Next.js
+.next/
+node_modules/
+.env*.local
 
 # Backend (Python)
 backend/venv/
@@ -18,12 +18,11 @@ backend/*.pyc
 backend/*.db
 backend/.env
 backend/.mypy_cache/
+__pycache__/
+*.pyc
 
 # Build artifacts
 tsconfig.tsbuildinfo
-node_modules/
-.next/
-.env*.local
 
 # Common ignores
 .DS_Store
