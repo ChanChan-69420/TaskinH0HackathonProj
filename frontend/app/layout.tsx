@@ -20,7 +20,11 @@ export const metadata: Metadata = {
   description: 'A gamified, AI-powered to-do list with real-life rewards.',
   generator: 'v0.app',
   icons: {
-    icon: '/favicon.svg',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/apple-icon.png',
   },
 }
 
