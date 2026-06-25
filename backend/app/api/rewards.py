@@ -26,6 +26,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
+from uuid import UUID
 
 from app.api.deps import get_current_user
 from app.database.connection import get_db
@@ -165,7 +166,7 @@ def create_reward(
     summary="Edit a reward's name, description, or cost",
 )
 def update_reward(
-    reward_id: str,
+    reward_id: UUID,
     data: RewardUpdateRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -213,7 +214,7 @@ def update_reward(
     summary="Delete a reward",
 )
 def delete_reward(
-    reward_id: str,
+    reward_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -239,7 +240,7 @@ def delete_reward(
     summary="Ask AI to suggest a fair points cost for this reward",
 )
 def analyze_reward(
-    reward_id: str,
+    reward_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -364,7 +365,7 @@ def analyze_reward_text(
     summary="Spend points to claim a reward",
 )
 def claim_reward(
-    reward_id: str,
+    reward_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -444,7 +445,7 @@ def claim_reward(
     summary="Mark a claimed reward as redeemed",
 )
 def redeem_reward(
-    reward_id: str,
+    reward_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
+from uuid import UUID
 
 from app.api.deps import get_current_user
 from app.database.connection import get_db
@@ -57,7 +58,7 @@ class BreakdownRequest(BaseModel):
 
 # ── Helper: load a task and verify ownership ───────────────────────────────────
 
-def _get_owned_task(task_id: str, user_id, db: Session) -> Task:
+def _get_owned_task(task_id: UUID, user_id, db: Session) -> Task:
     """
     Load a task by ID and confirm it belongs to the given user.
     Raises 404 if not found, 403 if wrong user.
@@ -70,7 +71,7 @@ def _get_owned_task(task_id: str, user_id, db: Session) -> Task:
     return task
 
 
-def _get_owned_subtask(subtask_id: str, user_id, db: Session) -> Subtask:
+def _get_owned_subtask(subtask_id: UUID, user_id, db: Session) -> Subtask:
     """
     Load a subtask by ID and confirm the parent task belongs to the user.
     """
@@ -94,7 +95,7 @@ def _get_owned_subtask(subtask_id: str, user_id, db: Session) -> Subtask:
     summary="Use Gemini AI to auto-generate subtasks for a task",
 )
 def breakdown_task(
-    task_id: str,
+    task_id: UUID,
     data: Optional[BreakdownRequest] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -195,7 +196,7 @@ def breakdown_task(
     summary="Manually add a subtask to a task",
 )
 def add_subtask(
-    task_id: str,
+    task_id: UUID,
     data: SubtaskCreateRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -242,7 +243,7 @@ def add_subtask(
     summary="Mark a subtask as done and earn points",
 )
 def complete_subtask(
-    subtask_id: str,
+    subtask_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -325,7 +326,7 @@ def complete_subtask(
     summary="Delete a subtask",
 )
 def delete_subtask(
-    subtask_id: str,
+    subtask_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

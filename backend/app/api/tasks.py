@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
+from uuid import UUID
 
 from app.api.deps import get_current_user
 from app.database.connection import get_db
@@ -233,7 +234,7 @@ def create_task(
     summary="Get a single task by ID",
 )
 def get_task(
-    task_id: str,
+    task_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -264,7 +265,7 @@ def get_task(
     summary="Update a task's title, description, priority, or due date",
 )
 def update_task(
-    task_id: str,
+    task_id: UUID,
     data: TaskUpdateRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -335,7 +336,7 @@ def update_task(
     summary="Change a task's status",
 )
 def update_task_status(
-    task_id: str,
+    task_id: UUID,
     data: TaskStatusRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -378,7 +379,7 @@ def update_task_status(
     summary="Delete a task and all its subtasks",
 )
 def delete_task(
-    task_id: str,
+    task_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

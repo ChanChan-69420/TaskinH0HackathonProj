@@ -19,6 +19,12 @@ backend/*.db
 backend/.env
 backend/.mypy_cache/
 
+# Build artifacts
+tsconfig.tsbuildinfo
+node_modules/
+.next/
+.env*.local
+
 # Common ignores
 .DS_Store
 Thumbs.db

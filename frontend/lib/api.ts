@@ -33,9 +33,6 @@ async function request<T = any>(method: string, path: string, body?: unknown): P
   }
 
   const url = `${API_BASE}${path}`
-  // #region agent log
-  fetch('http://127.0.0.1:7901/ingest/bb9cf196-d57d-436b-8df5-c292791dec1b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'df382b'},body:JSON.stringify({sessionId:'df382b',runId:'pre-fix',hypothesisId:'A-B-C',location:'lib/api.ts:request:pre-fetch',message:'API request starting',data:{method,path,url,apiBase:API_BASE,hasToken:!!token,pageOrigin:typeof window!=='undefined'?window.location.origin:null,pageHref:typeof window!=='undefined'?window.location.href:null},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 
   let res: Response
   try {
@@ -45,15 +42,8 @@ async function request<T = any>(method: string, path: string, body?: unknown): P
       body: body ? JSON.stringify(body) : undefined,
     })
   } catch (err) {
-    // #region agent log
-    fetch('http://127.0.0.1:7901/ingest/bb9cf196-d57d-436b-8df5-c292791dec1b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'df382b'},body:JSON.stringify({sessionId:'df382b',runId:'pre-fix',hypothesisId:'A-B-C-D',location:'lib/api.ts:request:fetch-error',message:'Fetch failed before response',data:{method,path,url,apiBase:API_BASE,errorName:err instanceof Error?err.name:'unknown',errorMessage:err instanceof Error?err.message:String(err),pageOrigin:typeof window!=='undefined'?window.location.origin:null},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     throw err
   }
-
-  // #region agent log
-  fetch('http://127.0.0.1:7901/ingest/bb9cf196-d57d-436b-8df5-c292791dec1b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'df382b'},body:JSON.stringify({sessionId:'df382b',runId:'pre-fix',hypothesisId:'D',location:'lib/api.ts:request:post-fetch',message:'Fetch returned response',data:{method,path,url,status:res.status,ok:res.ok},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 
   if (!res.ok) {
     let detail = `Request failed with status ${res.status}`
