@@ -55,8 +55,8 @@ httpx.AsyncClient.__init__ = patched_async_client_init
 from groq import Groq
 from sqlalchemy.orm import Session
 
-from app.config import GROQ_API_KEY
-from app.models.ai_cache import AICache
+from backend_app.config import GROQ_API_KEY
+from backend_app.models.ai_cache import AICache
 
 logger = logging.getLogger(__name__)
 

@@ -26,7 +26,7 @@ from sqlalchemy import Boolean, Column, Integer, String, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.database.base import Base, TimestampMixin
+from backend_app.database.base import Base, TimestampMixin
 
 
 class Reward(Base, TimestampMixin):

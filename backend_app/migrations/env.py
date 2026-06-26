@@ -7,10 +7,10 @@ from sqlalchemy import engine_from_config, pool
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from app.config import DATABASE_URL
-from app.database.base import Base
+from backend_app.config import DATABASE_URL
+from backend_app.database.base import Base
 
-import app.models  # noqa: F401
+import backend_app.models  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", DATABASE_URL)

@@ -8,13 +8,13 @@ user profile details, and progress bar stats.
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from app.api.deps import get_current_user
-from app.database.connection import get_db
-from app.models.user import User
-from app.models.task import Task
-from app.models.subtask import Subtask
-from app.models.reward import Reward
-from app.models.gamification import UserGamification
+from backend_app.api.deps import get_current_user
+from backend_app.database.connection import get_db
+from backend_app.models.user import User
+from backend_app.models.task import Task
+from backend_app.models.subtask import Subtask
+from backend_app.models.reward import Reward
+from backend_app.models.gamification import UserGamification
 
 router = APIRouter()
 

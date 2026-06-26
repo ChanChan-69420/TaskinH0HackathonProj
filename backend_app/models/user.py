@@ -22,7 +22,7 @@ from sqlalchemy import Column, String, DateTime, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.database.base import Base, TimestampMixin
+from backend_app.database.base import Base, TimestampMixin
 
 
 class User(Base, TimestampMixin):

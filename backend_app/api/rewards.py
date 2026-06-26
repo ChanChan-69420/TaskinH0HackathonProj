@@ -28,12 +28,12 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from uuid import UUID
 
-from app.api.deps import get_current_user
-from app.database.connection import get_db
-from app.models.gamification import UserGamification
-from app.models.reward import Reward
-from app.models.user import User
-from app.services.ai import analyze_reward as ai_analyze_reward
+from backend_app.api.deps import get_current_user
+from backend_app.database.connection import get_db
+from backend_app.models.gamification import UserGamification
+from backend_app.models.reward import Reward
+from backend_app.models.user import User
+from backend_app.services.ai import analyze_reward as ai_analyze_reward
 
 router = APIRouter()
 

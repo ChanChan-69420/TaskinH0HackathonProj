@@ -16,7 +16,7 @@ import uuid
 from sqlalchemy import Column, String, Text, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 
-from app.database.base import Base
+from backend_app.database.base import Base
 
 
 class AICache(Base):

@@ -24,10 +24,10 @@ import bcrypt
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
-from app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_DAYS, GOOGLE_CLIENT_ID
-from app.database.connection import get_db
-from app.models.gamification import UserGamification
-from app.models.user import User
+from backend_app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_DAYS, GOOGLE_CLIENT_ID
+from backend_app.database.connection import get_db
+from backend_app.models.gamification import UserGamification
+from backend_app.models.user import User
 
 from google.oauth2 import id_token
 from google.auth.transport import requests

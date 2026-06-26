@@ -20,9 +20,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 
-from app.database.connection import get_db
-from app.models.user import User
-from app.config import SECRET_KEY, ALGORITHM
+from backend_app.database.connection import get_db
+from backend_app.models.user import User
+from backend_app.config import SECRET_KEY, ALGORITHM
 
 # This tells FastAPI to look for a Bearer token in the Authorization header.
 # Example header the frontend sends:

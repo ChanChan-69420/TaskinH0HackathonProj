@@ -7,12 +7,12 @@ FastAPI application entry point.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import ALLOWED_ORIGINS
-from app.database.connection import engine
-from app.database.base import Base
+from backend_app.config import ALLOWED_ORIGINS
+from backend_app.database.connection import engine
+from backend_app.database.base import Base
 
 # Import all models so Base.metadata knows every table
-import app.models  # noqa: F401
+import backend_app.models  # noqa: F401
 Base.metadata.create_all(bind=engine)
 
 # Auto-migration for tasks, rewards, and users tables
@@ -57,11 +57,11 @@ app.add_middleware(
 )
 
 # ── Routers (uncomment as each part is added) ─────────────────────────────────
-from app.api.auth import router as auth_router          # Part 2
-from app.api.tasks import router as tasks_router        # Part 3
-from app.api.subtasks import router as subtasks_router  # Part 4
-from app.api.rewards import router as rewards_router    # Part 5
-from app.api.gamification import router as stats_router # Part 6
+from backend_app.api.auth import router as auth_router          # Part 2
+from backend_app.api.tasks import router as tasks_router        # Part 3
+from backend_app.api.subtasks import router as subtasks_router  # Part 4
+from backend_app.api.rewards import router as rewards_router    # Part 5
+from backend_app.api.gamification import router as stats_router # Part 6
 
 app.include_router(auth_router,    prefix="/api", tags=["Auth"])
 app.include_router(tasks_router,   prefix="/api", tags=["Tasks"])

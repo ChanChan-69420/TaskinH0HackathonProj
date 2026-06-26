@@ -22,12 +22,12 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from uuid import UUID
 
-from app.api.deps import get_current_user
-from app.database.connection import get_db
-from app.models.task import Task
-from app.models.subtask import Subtask
-from app.models.user import User
-from app.services.ai import analyze_task_difficulty
+from backend_app.api.deps import get_current_user
+from backend_app.database.connection import get_db
+from backend_app.models.task import Task
+from backend_app.models.subtask import Subtask
+from backend_app.models.user import User
+from backend_app.services.ai import analyze_task_difficulty
 
 router = APIRouter()
 

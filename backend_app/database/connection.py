@@ -8,7 +8,7 @@ guarantees it is closed after each request.
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-from app.config import DATABASE_URL
+from backend_app.config import DATABASE_URL
 
 # ── Engine (PostgreSQL only) ──────────────────────────────────────────────────
 if DATABASE_URL.startswith("postgresql"):
