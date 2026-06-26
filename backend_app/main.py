@@ -74,5 +74,6 @@ app.include_router(stats_router,   prefix="/api", tags=["Gamification"])
 
 
 @app.get("/health", tags=["Health"])
+@app.get("/api/health", tags=["Health"])
 def health_check():
     return {"status": "ok", "message": "Gamified To-Do API is running"}
